@@ -13,6 +13,22 @@ let vertexColorBuffer;
 let indexBuffer;
 let objectsBindGroup;
 
+let vertexCount;
+let vertexList = [];
+
+function createHexagonVertices() {
+    vertexCount += 7;
+    vertexList.push(0.0);
+    vertexList.push(0.0);
+    vertexList.push(0.0);
+    for (let i = 0; i < 6; i++) {
+        let theta = i * Math.PI * 0.33333;
+        vertexList.push(Math.cos(theta));
+        vertexList.push(Math.sin(theta));
+        vertexList.push(0.0);
+    }
+}
+
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
     return await response.text();
@@ -52,8 +68,8 @@ async function setupGPUDevice() {
                 arrayStride: 12,
                 attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3"}]
             }, {
-                arrayStride: 12,
-                attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3"}]
+                arrayStride: 4,
+                attributes: [{ shaderLocation: 1, offset: 0, format: "unorm8x4"}]
             }],
             module
         },
@@ -81,7 +97,7 @@ async function setupGPUDevice() {
 
     vertexColorBuffer = device.createBuffer({
         label: "vertex color buffer",
-        size: 96,
+        size: 32,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
 
@@ -92,7 +108,7 @@ async function setupGPUDevice() {
     });
 
     device.queue.writeBuffer(vertexBuffer, 0, new Float32Array([-0.5, -0.5, 0.0, 0.0, -0.5, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]));
-    device.queue.writeBuffer(vertexColorBuffer, 0, new Float32Array([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]));
+    device.queue.writeBuffer(vertexColorBuffer, 0, new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 255, 255, 255, 0, 255, 255, 0, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255]));
     device.queue.writeBuffer(indexBuffer, 0, new Uint32Array([0, 1, 2, 1, 2, 3, 4, 5, 6, 5, 6, 7]));
     
     render();
