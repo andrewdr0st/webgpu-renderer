@@ -1,22 +1,23 @@
 
+struct matrix {
+    matrix: mat4x4f
+};
+
 struct vertex {
-    @location(0) pos: vec3f,
+    @location(0) pos: vec4f,
     @location(1) color: vec4f,
-    @location(2) offset: vec2f,
-    @location(3) scale: f32,
-    @location(4) rotation: f32
-}
+};
 
 struct vsOutput {
     @builtin(position) position: vec4f,
     @location(0) color: vec4f
 };
 
+@group(0) @binding(0) var<uniform> m: matrix;
 
 @vertex fn vs(vert: vertex) -> vsOutput {
     var vsOut: vsOutput;
-    let p = vec2f(vert.pos.x * cos(vert.rotation) - vert.pos.y * sin(vert.rotation), vert.pos.x * sin(vert.rotation) + vert.pos.y * cos(vert.rotation));
-    vsOut.position = vec4f(p * vert.scale + vert.offset, 0.0, 1.0);
+    vsOut.position = m.matrix * vert.pos;
     vsOut.color = vert.color;
     return vsOut;
 }
