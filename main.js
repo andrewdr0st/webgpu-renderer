@@ -18,9 +18,6 @@ let uniformBuffer;
 let vertexCount = 0;
 let vertexList = [];
 
-let instanceCount = 0;
-let instanceList = [];
-
 function createFVertices() {
     const positions = [
       // left column
@@ -272,5 +269,7 @@ function render(vcount) {
 canvas = document.getElementById("canvas");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+
+
 
 setupGPUDevice();

@@ -113,6 +113,10 @@ async function main() {
     return;
   }
 
+  let mesh = new Mesh();
+    await mesh.parseObjFile("testcube.obj");
+    console.log(mesh);
+
   // Get a WebGPU context from the canvas and configure it
   let scalingFactor = 1;
   canvas = document.getElementById("canvas");
