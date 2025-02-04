@@ -30,6 +30,11 @@ const VERTEX_SIZE = 36;
 const INDEX_SIZE = 4;
 const MAT4_SIZE = 64;
 
+let lastFrameTime = 0;
+
+let cameraTheta = 0;
+let cameraVelocity = 0.5;
+
 async function init() {
     await setupGPUDevice();
     setupCanvas();
@@ -38,7 +43,10 @@ async function init() {
     requestAnimationFrame(main);
 }
 
-function main() {
+function main(currentTime) {
+    const deltaTime = (currentTime - lastFrameTime) * 0.001;
+    lastFrameTime = currentTime;
+    cameraTheta += cameraVelocity * deltaTime;
     render();
     requestAnimationFrame(main);
 }
@@ -174,44 +182,37 @@ async function setupBuffers() {
         ]
     });
 
-    const aspect = canvas.clientWidth / canvas.clientHeight;
-    const projection = mat4.perspective(
-        degToRad(60), // fieldOfView,
-        aspect,
-        1,      // zNear
-        2000    // zFar
-    );
-    const eye = [2, 3, 9];
-    const target = [0, 0, 0];
-    const up = [0, 1, 0];
-
-    // Compute a view matrix
-    const viewMatrix = mat4.lookAt(eye, target, up);
-
-    // combine the view and projection matrixes
-    const viewProjectionMatrix = mat4.multiply(projection, viewMatrix);
-
-    let m = mat4.translation([0, 1, 0]);
-    m = mat4.multiply(viewProjectionMatrix, m);
     let v = new Float32Array(cube.vertices);
     let c = new Uint8Array(v.buffer);
     let colors = [
-        [200, 100, 200, 255],
         [200, 200, 100, 255],
-        [150, 220, 200, 255],
+        [120, 200, 170, 255],
+        [200, 100, 200, 255],
         [30, 140, 90, 255],
         [180, 40, 90, 255],
         [90, 90, 180, 255]
     ];
-    for (let i = 0; i < 6; i++) {
-        for (let j = 1; j <= 4; j++) {
-            c.set(colors[i], i * VERTEX_SIZE * 4 + j * VERTEX_SIZE - 4);
+    for (let i = 0; i < cube.vertexCount; i++) {
+        let col;
+        if (v[(i * 9) + 5] == -1) {
+            col = 0;
+        } else if (v[(i * 9) + 5] == 1) {
+            col = 1;
+        } else if (v[(i * 9) + 6] == -1) {
+            col = 2;
+        } else if (v[(i * 9) + 6] == 1) {
+            col = 3;
+        } else if (v[(i * 9) + 7] == -1) {
+            col = 4;
+        } else {
+            col = 5;
         }
+        c.set(colors[col], i * VERTEX_SIZE + 32);
     }
 
     device.queue.writeBuffer(vertexBuffer, 0, v);
     device.queue.writeBuffer(indexBuffer, 0, new Uint32Array(cube.indices));
-    device.queue.writeBuffer(uniformBuffer, 0, m);
+    
 
     indexCount = cube.indexCount;
 }
@@ -219,6 +220,20 @@ async function setupBuffers() {
 function render() {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
+    const aspect = canvas.clientWidth / canvas.clientHeight;
+    const projection = mat4.perspective(degToRad(70), aspect, 1, 200);
+    const eye = [5 * Math.cos(cameraTheta), 3.5, 5 * Math.sin(cameraTheta)];
+    const target = [0, 0, 0];
+    const up = [0.0995037, 0.995937, 0];
+
+    const viewMatrix = mat4.lookAt(eye, target, up);
+
+    const viewProjectionMatrix = mat4.multiply(projection, viewMatrix);
+    let m = mat4.translation([0, 1, 0]);
+    m = mat4.multiply(viewProjectionMatrix, m);
+
+    device.queue.writeBuffer(uniformBuffer, 0, m);
+    
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
     const pass = encoder.beginRenderPass(renderPassDescriptor);
