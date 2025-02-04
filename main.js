@@ -1,4 +1,4 @@
-const { mat4, vec3 } = wgpuMatrix;
+const { mat4, mat3, vec3 } = wgpuMatrix;
 
 let adapter;
 let device;
@@ -174,7 +174,7 @@ async function setupBuffers() {
 
     uniformBuffer = device.createBuffer({
       label: 'uniforms',
-      size: MAT4_SIZE * 2 + 16,
+      size: MAT4_SIZE * 3 + 16,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -219,7 +219,7 @@ async function setupBuffers() {
     device.queue.writeBuffer(vertexBuffer, 0, v);
     device.queue.writeBuffer(indexBuffer, 0, new Uint32Array(cube.indices));
     
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 2, new Float32Array([-0.3698, -0.9245, 0.09245]));
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 3 - 16, new Float32Array([3, 10, -1]));
 
     indexCount = cube.indexCount;
 }
@@ -237,12 +237,18 @@ function render() {
     const viewMatrix = mat4.lookAt(eye, target, up);
 
     const viewProjectionMatrix = mat4.multiply(projection, viewMatrix);
-    let m = mat4.translation([0, 1, 0]);
+    let m = mat4.translation([0, 0, 0]);
     m = mat4.rotateX(m, cubeTheta);
+    m = mat4.scale(m, [1, 3, 0.75]);
 
+    let nm = mat3.fromMat4(m);
+    nm = mat3.inverse(nm);
+    nm = mat3.transpose(nm);
 
     device.queue.writeBuffer(uniformBuffer, 0, m);
     device.queue.writeBuffer(uniformBuffer, MAT4_SIZE, viewProjectionMatrix);
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 2, nm);
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 3, new Float32Array(eye));
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
