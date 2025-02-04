@@ -35,6 +35,9 @@ let lastFrameTime = 0;
 let cameraTheta = 0;
 let cameraVelocity = 0.5;
 
+let cubeTheta = 0;
+let cubeVelocity = -0.3;
+
 async function init() {
     await setupGPUDevice();
     setupCanvas();
@@ -47,6 +50,7 @@ function main(currentTime) {
     const deltaTime = (currentTime - lastFrameTime) * 0.001;
     lastFrameTime = currentTime;
     cameraTheta += cameraVelocity * deltaTime;
+    cubeTheta += cubeVelocity * deltaTime;
     render();
     requestAnimationFrame(main);
 }
@@ -170,7 +174,7 @@ async function setupBuffers() {
 
     uniformBuffer = device.createBuffer({
       label: 'uniforms',
-      size: MAT4_SIZE,
+      size: MAT4_SIZE * 2 + 16,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -193,6 +197,7 @@ async function setupBuffers() {
         [90, 90, 180, 255]
     ];
     for (let i = 0; i < cube.vertexCount; i++) {
+        /*
         let col;
         if (v[(i * 9) + 5] == -1) {
             col = 0;
@@ -207,12 +212,14 @@ async function setupBuffers() {
         } else {
             col = 5;
         }
-        c.set(colors[col], i * VERTEX_SIZE + 32);
+        */
+        c.set(colors[4], i * VERTEX_SIZE + 32);
     }
 
     device.queue.writeBuffer(vertexBuffer, 0, v);
     device.queue.writeBuffer(indexBuffer, 0, new Uint32Array(cube.indices));
     
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 2, new Float32Array([-0.3698, -0.9245, 0.09245]));
 
     indexCount = cube.indexCount;
 }
@@ -223,16 +230,19 @@ function render() {
     const aspect = canvas.clientWidth / canvas.clientHeight;
     const projection = mat4.perspective(degToRad(70), aspect, 1, 200);
     const eye = [5 * Math.cos(cameraTheta), 3.5, 5 * Math.sin(cameraTheta)];
+    //const eye = [5, 3.5, 0];
     const target = [0, 0, 0];
-    const up = [0.0995037, 0.995937, 0];
+    const up = [0, 1, 0];
 
     const viewMatrix = mat4.lookAt(eye, target, up);
 
     const viewProjectionMatrix = mat4.multiply(projection, viewMatrix);
     let m = mat4.translation([0, 1, 0]);
-    m = mat4.multiply(viewProjectionMatrix, m);
+    m = mat4.rotateX(m, cubeTheta);
+
 
     device.queue.writeBuffer(uniformBuffer, 0, m);
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE, viewProjectionMatrix);
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
