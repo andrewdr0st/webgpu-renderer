@@ -2,9 +2,13 @@ const { mat4, vec3 } = wgpuMatrix;
 
 let adapter;
 let device;
+let presentationFormat;
 
 let canvas;
 let context;
+let canvasTexture;
+
+let scalingFactor = 1;
 
 let module;
 let pipeline;
@@ -20,10 +24,25 @@ let objectsBindGroup;
 let depthTexture;
 
 let vertexCount = 0;
+let indexCount = 0;
 
 const VERTEX_SIZE = 36;
 const INDEX_SIZE = 4;
 const MAT4_SIZE = 64;
+
+async function init() {
+    await setupGPUDevice();
+    setupCanvas();
+    await setupRenderPipeline();
+    await setupBuffers();
+    requestAnimationFrame(main);
+}
+
+function main() {
+    render();
+    requestAnimationFrame(main);
+}
+
 
 function degToRad(theta) {
     return theta * Math.PI / 180;
@@ -44,17 +63,27 @@ async function setupGPUDevice() {
         alert("Browser does not support WebGPU");
         return false;
     }
+    presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+}
 
-    let presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
+function setupCanvas() {
+    canvas = document.getElementById("canvas");
+    let w = Math.ceil(window.innerWidth / scalingFactor);
+    let h = Math.ceil(window.innerHeight / scalingFactor);
+    canvas.width = w;
+    canvas.height = h;
     context = canvas.getContext("webgpu");
     context.configure({
         device,
-        format: presentationFormat
+        format: presentationFormat,
+        alphaMode: 'premultiplied'
     });
-    const canvasTexture = context.getCurrentTexture();
-    let canvasTextureView = canvasTexture.createView();
+    canvasTexture = context.getCurrentTexture();
+    canvas.style.width = w * scalingFactor + "px";
+    canvas.style.height = h * scalingFactor + "px";
+}
 
+async function setupRenderPipeline() {
     let shaderCode = await loadWGSLShader("main.wgsl");
     module = device.createShaderModule({
         label: "render shader",
@@ -101,7 +130,7 @@ async function setupGPUDevice() {
     renderPassDescriptor = {
         label: "render pass",
         colorAttachments: [{
-            view: canvasTextureView,
+            view: canvasTexture.createView(),
             clearValue: [0.25, 0.25, 0.25, 1],
             loadOp: "clear",
             storeOp: "store"
@@ -113,7 +142,9 @@ async function setupGPUDevice() {
             depthStoreOp: 'store'
         }
     }
+}
 
+async function setupBuffers() {
     let cube = new Mesh();
     await cube.parseObjFile("testcube.obj");
 
@@ -181,11 +212,11 @@ async function setupGPUDevice() {
     device.queue.writeBuffer(vertexBuffer, 0, v);
     device.queue.writeBuffer(indexBuffer, 0, new Uint32Array(cube.indices));
     device.queue.writeBuffer(uniformBuffer, 0, m);
-    
-    render(cube.vertexCount, cube.indexCount);
+
+    indexCount = cube.indexCount;
 }
 
-function render(vcount, icount) {
+function render() {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
     const encoder = device.createCommandEncoder({ label: 'encoder' });
@@ -195,17 +226,13 @@ function render(vcount, icount) {
     pass.setVertexBuffer(0, vertexBuffer);
     pass.setIndexBuffer(indexBuffer, "uint32");
     pass.setBindGroup(0, objectsBindGroup);
-    pass.drawIndexed(icount);
+    pass.drawIndexed(indexCount);
     pass.end();
 
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
 }
 
-canvas = document.getElementById("canvas");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
 
-
-setupGPUDevice();
+init();
