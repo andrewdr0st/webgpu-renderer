@@ -4,7 +4,7 @@ class Mesh {
         this.positions = [];
         this.textureCoords = [];
         this.normals = [];
-        this.verticies = [];
+        this.vertices = [];
         this.vertexCount = 0;
         this.indices = [];
         this.indexCount = 0;
@@ -37,11 +37,12 @@ class Mesh {
                     if (idx == undefined) {
                         let v = parts[j].split("/");
                         let p = (parseInt(v[0]) - 1) * 3;
-                        this.verticies.push(this.positions[p], this.positions[p + 1], this.positions[p + 2]);
+                        this.vertices.push(this.positions[p], this.positions[p + 1], this.positions[p + 2]);
                         let t = (parseInt(v[1]) - 1) * 2;
-                        this.verticies.push(this.textureCoords[t], this.textureCoords[t + 1]);
+                        this.vertices.push(this.textureCoords[t], this.textureCoords[t + 1]);
                         let n = (parseInt(v[2]) - 1) * 3;
-                        this.verticies.push(this.normals[n], this.normals[n + 1], this.normals[n + 2]);
+                        this.vertices.push(this.normals[n], this.normals[n + 1], this.normals[n + 2]);
+                        this.vertices.push(0);
                         idx = this.vertexCount;
                         vertexMap.set(s, idx);
                         this.vertexCount++;

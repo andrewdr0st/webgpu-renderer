@@ -5,7 +5,9 @@ struct matrix {
 
 struct vertex {
     @location(0) pos: vec4f,
-    @location(1) color: vec4f,
+    @location(1) tc: vec2f,
+    @location(2) normal: vec3f,
+    @location(3) color: vec4f
 };
 
 struct vsOutput {
