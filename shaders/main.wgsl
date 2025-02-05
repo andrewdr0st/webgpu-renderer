@@ -39,9 +39,11 @@ struct vsOutput {
     let normal = normalize(fsIn.normal);
     let surface_to_light = normalize(fsIn.surface_to_light);
     let half_vector = normalize(fsIn.surface_to_light + fsIn.surface_to_view);
-    var specular = dot(normal, half_vector);
-    specular = select(0.0, pow(specular, 5), specular > 0.0);
-    let light = max(dot(normal, surface_to_light), 0);
-    let color = fsIn.color.rgb * (light + 0.1) + specular * 0.3;
+
+    let ambient = 0.2;
+    let diffuse = max(dot(normal, surface_to_light), 0);
+    let specular = pow(max(0, dot(normal, half_vector)), 10);
+    
+    let color = fsIn.color.rgb * (ambient + diffuse + specular * 0.2);
     return vec4f(color, fsIn.color.a);
 }
