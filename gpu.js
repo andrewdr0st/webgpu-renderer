@@ -196,8 +196,6 @@ async function setupBuffers() {
 function render(scene) {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
-    const viewProjectionMatrix = scene.camera.viewProjectionMatrix();
-
     let m = mat4.translation([0, 0, 0]);
     m = mat4.rotateX(m, cubeTheta);
     m = mat4.scale(m, [1, 3, 0.75]);
@@ -207,9 +205,9 @@ function render(scene) {
     nm = mat3.transpose(nm);
 
     device.queue.writeBuffer(uniformBuffer, 0, m);
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE, viewProjectionMatrix);
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE, scene.camera.viewProjectionMatrix());
     device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 2, nm);
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 3, new Float32Array(camera.position));
+    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 3, scene.camera.position);
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
