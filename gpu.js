@@ -197,8 +197,8 @@ function render(scene) {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
     let m = mat4.translation([0, 0, 0]);
-    //m = mat4.rotateX(m, cubeTheta);
-    //m = mat4.scale(m, [1, 3, 0.75]);
+    m = mat4.rotateX(m, cubeTheta);
+    m = mat4.scale(m, [1, 3, 0.75]);
 
     let nm = mat3.fromMat4(m);
     nm = mat3.inverse(nm);

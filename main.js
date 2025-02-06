@@ -16,9 +16,6 @@ let cubeVelocity = -0.3;
 let camera = new Camera();
 let scene = new Scene(camera);
 
-let cameraX = 0;
-let cameraD = 1;
-
 async function init() {
     await setupGPUDevice();
     setupCanvas();
@@ -31,24 +28,14 @@ function main(currentTime) {
     const deltaTime = (currentTime - lastFrameTime) * 0.001;
     lastFrameTime = currentTime;
     cubeTheta += cubeVelocity * deltaTime;
-    //cameraForwardVelocity = inputMap[0] - inputMap[1];
-    //cameraRightVelocity = inputMap[3] - inputMap[2];
-    //camera.lookTo = [Math.sin(cameraTheta) * Math.cos(cameraPhi), Math.sin(cameraPhi), Math.cos(cameraTheta) * Math.cos(cameraPhi)];
+    cameraForwardVelocity = inputMap[0] - inputMap[1];
+    cameraRightVelocity = inputMap[3] - inputMap[2];
+    camera.lookTo = [Math.sin(cameraTheta) * Math.cos(cameraPhi), Math.sin(cameraPhi), Math.cos(cameraTheta) * Math.cos(cameraPhi)];
+    let fVec = vec3.scale(camera.forward, cameraForwardVelocity);
+    let rVec = vec3.scale(camera.right, cameraRightVelocity);
+    let moveVec = vec3.normalize(vec3.add(fVec, rVec));
+    camera.position = vec3.add(camera.position, vec3.scale(moveVec, deltaTime * cameraSpeed));
     camera.updateLookAt();
-    //let fVec = vec3.scale(camera.forward, cameraForwardVelocity);
-    //let rVec = vec3.scale(camera.right, cameraRightVelocity);
-    //let moveVec = vec3.normalize(vec3.add(fVec, rVec));
-    //camera.position = vec3.add(camera.position, vec3.scale(moveVec, deltaTime * cameraSpeed));
-
-    cameraX += cameraD * deltaTime * 2;
-    if (cameraX > 6) {
-        cameraD = -1;
-        console.log(camera.viewProjectionMatrix());
-    } else if (cameraX < -6) {
-        cameraD = 1;
-        console.log(camera.viewProjectionMatrix());
-    }
-    camera.position = new Float32Array([cameraX, 2, -10]);
     render(scene);
     requestAnimationFrame(main);
 }

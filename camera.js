@@ -2,12 +2,13 @@ class Camera {
     constructor() {
         this.position = [0, 0, 0];
         this.lookTo = [0, 0, 1];
-        this.lookAt = [0, 0, 0];
+        this.lookAt = [0, 0, 3];
         this.up = [0, 1, 0];
         this.forward;
         this.right;
         this.setClipPlanes(1, 1000);
         this.setFov(60);
+        this.updateLookAt();
     }
 
     viewProjectionMatrix() {
