@@ -19,7 +19,7 @@ class Camera {
 
     updateLookAt() {
         this.lookTo = vec3.normalize(this.lookTo);
-        //this.lookAt = vec3.add(this.position, this.lookTo);
+        this.lookAt = vec3.add(this.position, this.lookTo);
         this.right = vec3.normalize(vec3.cross(this.lookTo, this.up));
         this.forward = vec3.normalize(vec3.cross(this.up, this.right));
     }

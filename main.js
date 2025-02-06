@@ -18,7 +18,6 @@ let scene = new TestScene(camera);
 
 async function init() {
     await scene.init();
-    console.log(scene);
     await setupGPUDevice();
     setupCanvas();
     await setupRenderPipeline();
