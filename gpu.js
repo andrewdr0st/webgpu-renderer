@@ -178,16 +178,20 @@ async function setupBuffers(scene) {
     let vIdx = 0;
     let iIdx = 0;
     for (let i = 0; i < scene.numObjects; i++) {
-        let o = scene.objectList[i];
-        vertexList.set(o.mesh.vertices, vIdx);
-        for (let j = 0; j < o.mesh.vertexCount; j++) {
+        let m = scene.objectList[i].mesh;
+        vertexList.set(m.vertices, vIdx);
+        for (let j = 0; j < m.vertexCount; j++) {
             let idx = ((vIdx / 10) + j) * VERTEX_SIZE;
             c.set(colors[i], idx + 32);
             c.set([i], idx + 36);
         }
-        vIdx += o.mesh.vertexCount * 10;
-        indexList.set(o.mesh.indices, iIdx);
-        iIdx += o.mesh.indexCount;
+        for (let j = 0; j < m.indexCount; j++) {
+            m.indices[j] += vIdx / 10;
+        }
+        console.log(m.indices);
+        vIdx += m.vertexCount * 10;
+        indexList.set(m.indices, iIdx);
+        iIdx += m.indexCount;
     }
 
     device.queue.writeBuffer(vertexBuffer, 0, vertexList);

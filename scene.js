@@ -23,6 +23,7 @@ class Scene {
 class TestScene extends Scene {
     async init() {
         this.camera.position = [0, 2.5, -5];
+        this.lightPosition = new Float32Array([30, 100, -10]);
 
         let planeMesh = new Mesh();
         await planeMesh.parseObjFile("plane.obj");
@@ -33,6 +34,7 @@ class TestScene extends Scene {
         let cubeMesh = new Mesh();
         await cubeMesh.parseObjFile("testcube.obj");
         let cube = new SceneObject(cubeMesh);
+        cube.position = [0, 1, 1];
         this.addObject(cube);
     }
 }

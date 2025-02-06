@@ -6,7 +6,7 @@ class Camera {
         this.up = [0, 1, 0];
         this.forward;
         this.right;
-        this.setClipPlanes(1, 1000);
+        this.setClipPlanes(0.2, 1000);
         this.setFov(60);
         this.updateLookAt();
     }
