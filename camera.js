@@ -1,8 +1,8 @@
 class Camera {
     constructor() {
         this.position = [0, 0, 0];
-        this.lookTo = [0, 0, 1];
-        this.lookAt = [0, 0, 3];
+        this.lookTo = [0, 0, -1];
+        this.lookAt = [0, 0, 0];
         this.up = [0, 1, 0];
         this.forward;
         this.right;
@@ -18,7 +18,8 @@ class Camera {
     }
 
     updateLookAt() {
-        this.lookAt = vec3.add(this.position, this.lookTo);
+        this.lookTo = vec3.normalize(this.lookTo);
+        //this.lookAt = vec3.add(this.position, this.lookTo);
         this.right = vec3.normalize(vec3.cross(this.lookTo, this.up));
         this.forward = vec3.normalize(vec3.cross(this.up, this.right));
     }

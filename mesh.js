@@ -42,7 +42,7 @@ class Mesh {
                         this.vertices.push(this.textureCoords[t], this.textureCoords[t + 1]);
                         let n = (parseInt(v[2]) - 1) * 3;
                         this.vertices.push(this.normals[n], this.normals[n + 1], this.normals[n + 2]);
-                        this.vertices.push(0);
+                        this.vertices.push(0, 0);
                         idx = this.vertexCount;
                         vertexMap.set(s, idx);
                         this.vertexCount++;

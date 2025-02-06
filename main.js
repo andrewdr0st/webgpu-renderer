@@ -14,13 +14,15 @@ let cubeTheta = 0;
 let cubeVelocity = -0.3;
 
 let camera = new Camera();
-let scene = new Scene(camera);
+let scene = new TestScene(camera);
 
 async function init() {
+    await scene.init();
+    console.log(scene);
     await setupGPUDevice();
     setupCanvas();
     await setupRenderPipeline();
-    await setupBuffers();
+    await setupBuffers(scene);
     requestAnimationFrame(main);
 }
 

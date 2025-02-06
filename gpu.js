@@ -18,6 +18,7 @@ let vertexColorBuffer;
 let instanceBuffer;
 let indexBuffer;
 let uniformBuffer;
+let objectInfoBuffer;
 let objectsBindGroup;
 
 let depthTexture;
@@ -25,9 +26,11 @@ let depthTexture;
 let vertexCount = 0;
 let indexCount = 0;
 
-const VERTEX_SIZE = 36;
+const VERTEX_SIZE = 40;
 const INDEX_SIZE = 4;
 const MAT4_SIZE = 64;
+const UNIFORM_BUFFER_SIZE = 96;
+const OBJECT_INFO_SIZE = 128;
 
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
@@ -88,7 +91,8 @@ async function setupRenderPipeline() {
                     { shaderLocation: 0, offset: 0, format: "float32x3"},
                     { shaderLocation: 1, offset: 12, format: "float32x2"},
                     { shaderLocation: 2, offset: 20, format: "float32x3"},
-                    { shaderLocation: 3, offset: 32, format: "unorm8x4"}
+                    { shaderLocation: 3, offset: 32, format: "unorm8x4"},
+                    { shaderLocation: 4, offset: 36, format: "uint32"}
                 ]
             }],
             module
@@ -99,7 +103,7 @@ async function setupRenderPipeline() {
             targets: [{ format: presentationFormat }]
         },
         primitive: {
-            cullMode: 'back',
+            cullMode: "back"
         },
         depthStencil: {
             depthWriteEnabled: true,
@@ -125,89 +129,84 @@ async function setupRenderPipeline() {
     }
 }
 
-async function setupBuffers() {
-    let cube = new Mesh();
-    await cube.parseObjFile("testcube.obj");
-
+async function setupBuffers(scene) {
     vertexBuffer = device.createBuffer({
         label: "vertex buffer",
-        size: cube.vertexCount * VERTEX_SIZE,
+        size: scene.numVertices * VERTEX_SIZE,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
 
     indexBuffer = device.createBuffer({
         label: "index buffer",
-        size: cube.indexCount * INDEX_SIZE,
+        size: scene.numIndices * INDEX_SIZE,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
     });
 
     uniformBuffer = device.createBuffer({
       label: 'uniforms',
-      size: MAT4_SIZE * 3 + 16,
+      size: UNIFORM_BUFFER_SIZE,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    objectInfoBuffer = device.createBuffer({
+        label: "object info buffer",
+        size: scene.numObjects * OBJECT_INFO_SIZE,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
 
     objectsBindGroup = device.createBindGroup({
         label: "objects bind group",
         layout: pipeline.getBindGroupLayout(0),
         entries: [
-            {binding: 0, resource: {buffer: uniformBuffer } }
+            { binding: 0, resource: { buffer: uniformBuffer } },
+            { binding: 1, resource: { buffer: objectInfoBuffer } }
         ]
     });
 
-    let v = new Float32Array(cube.vertices);
-    let c = new Uint8Array(v.buffer);
+    let vertexList = new Float32Array(scene.numVertices * 10);
+    let indexList = new Uint32Array(scene.numIndices);
+    let c = new Uint8Array(vertexList.buffer);
     let colors = [
-        [200, 200, 100, 255],
-        [120, 200, 170, 255],
-        [200, 100, 200, 255],
         [30, 140, 90, 255],
         [180, 40, 90, 255],
+        [120, 200, 170, 255],
+        [200, 200, 100, 255],
+        [200, 100, 200, 255],
         [90, 90, 180, 255]
     ];
-    for (let i = 0; i < cube.vertexCount; i++) {
-        /*
-        let col;
-        if (v[(i * 9) + 5] == -1) {
-            col = 0;
-        } else if (v[(i * 9) + 5] == 1) {
-            col = 1;
-        } else if (v[(i * 9) + 6] == -1) {
-            col = 2;
-        } else if (v[(i * 9) + 6] == 1) {
-            col = 3;
-        } else if (v[(i * 9) + 7] == -1) {
-            col = 4;
-        } else {
-            col = 5;
+
+    let vIdx = 0;
+    let iIdx = 0;
+    for (let i = 0; i < scene.numObjects; i++) {
+        let o = scene.objectList[i];
+        vertexList.set(o.mesh.vertices, vIdx);
+        for (let j = 0; j < o.mesh.vertexCount; j++) {
+            let idx = ((vIdx / 10) + j) * VERTEX_SIZE;
+            c.set(colors[i], idx + 32);
+            c.set([i], idx + 36);
         }
-        */
-        c.set(colors[4], i * VERTEX_SIZE + 32);
+        vIdx += o.mesh.vertexCount * 10;
+        indexList.set(o.mesh.indices, iIdx);
+        iIdx += o.mesh.indexCount;
     }
 
-    device.queue.writeBuffer(vertexBuffer, 0, v);
-    device.queue.writeBuffer(indexBuffer, 0, new Uint32Array(cube.indices));
-    
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 3 - 16, new Float32Array([3, 10, -1]));
-
-    indexCount = cube.indexCount;
+    device.queue.writeBuffer(vertexBuffer, 0, vertexList);
+    device.queue.writeBuffer(indexBuffer, 0, indexList);
 }
 
 function render(scene) {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
-    let m = mat4.translation([0, 0, 0]);
-    m = mat4.rotateX(m, cubeTheta);
-    m = mat4.scale(m, [1, 3, 0.75]);
+    device.queue.writeBuffer(uniformBuffer, 0, scene.camera.viewProjectionMatrix());
+    device.queue.writeBuffer(uniformBuffer, 64, scene.camera.position);
+    device.queue.writeBuffer(uniformBuffer, 80, scene.lightPosition);
 
-    let nm = mat3.fromMat4(m);
-    nm = mat3.inverse(nm);
-    nm = mat3.transpose(nm);
-
-    device.queue.writeBuffer(uniformBuffer, 0, m);
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE, scene.camera.viewProjectionMatrix());
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 2, nm);
-    device.queue.writeBuffer(uniformBuffer, MAT4_SIZE * 3, scene.camera.position);
+    for (let i = 0; i < scene.numObjects; i++) {
+        let o = scene.objectList[i];
+        o.calculateMatrices();
+        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE, o.worldMatrix);
+        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE, o.normalMatrix);
+    }
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
@@ -216,7 +215,7 @@ function render(scene) {
     pass.setVertexBuffer(0, vertexBuffer);
     pass.setIndexBuffer(indexBuffer, "uint32");
     pass.setBindGroup(0, objectsBindGroup);
-    pass.drawIndexed(indexCount);
+    pass.drawIndexed(scene.numIndices);
     pass.end();
 
     const commandBuffer = encoder.finish();

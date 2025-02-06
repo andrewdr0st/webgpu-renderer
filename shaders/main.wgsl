@@ -1,17 +1,22 @@
 
-struct matrix {
-    world: mat4x4f,
+struct sceneInfo {
     view: mat4x4f,
+    view_pos: vec3f,
+    light_pos: vec3f
+};
+
+struct objectInfo {
+    world_matrix: mat4x4f,
     normal_matrix: mat3x3f,
-    light_pos: vec3f,
-    view_pos: vec3f
+    material: u32
 };
 
 struct vertex {
     @location(0) pos: vec4f,
     @location(1) tc: vec2f,
     @location(2) normal: vec3f,
-    @location(3) color: vec4f
+    @location(3) color: vec4f,
+    @location(4) id: u32
 };
 
 struct vsOutput {
@@ -22,16 +27,18 @@ struct vsOutput {
     @location(3) surface_to_view: vec3f
 };
 
-@group(0) @binding(0) var<uniform> m: matrix;
+@group(0) @binding(0) var<uniform> scene: sceneInfo;
+@group(0) @binding(1) var<storage, read> objects: array<objectInfo>;
 
 @vertex fn vs(vert: vertex) -> vsOutput {
-    let world_pos = (m.world * vert.pos).xyz;
+    let obj = objects[vert.id];
+    let world_pos = (obj.world_matrix * vert.pos).xyz;
     var vsOut: vsOutput;
-    vsOut.position = m.view * m.world * vert.pos;
+    vsOut.position = scene.view * obj.world_matrix * vert.pos;
     vsOut.color = vert.color;
-    vsOut.normal = m.normal_matrix * vert.normal;
-    vsOut.surface_to_light = m.light_pos - world_pos;
-    vsOut.surface_to_view = m.view_pos - world_pos;
+    vsOut.normal = obj.normal_matrix * vert.normal;
+    vsOut.surface_to_light = scene.light_pos - world_pos;
+    vsOut.surface_to_view = scene.view_pos - world_pos;
     return vsOut;
 }
 
