@@ -19,6 +19,7 @@ let instanceBuffer;
 let indexBuffer;
 let uniformBuffer;
 let objectInfoBuffer;
+let materialBuffer;
 let objectsBindGroup;
 
 let depthTexture;
@@ -28,9 +29,11 @@ let indexCount = 0;
 
 const VERTEX_SIZE = 40;
 const INDEX_SIZE = 4;
+const MAT3_SIZE = 48;
 const MAT4_SIZE = 64;
 const UNIFORM_BUFFER_SIZE = 96;
 const OBJECT_INFO_SIZE = 128;
+const MATERIAL_SIZE = 16;
 
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
@@ -154,12 +157,22 @@ async function setupBuffers(scene) {
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
 
+    materialBuffer = device.createBuffer({
+        label: "material buffer",
+        size: scene.numMaterials * MATERIAL_SIZE,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    });
+    for (let i = 0; i < scene.numMaterials; i++) {
+        device.queue.writeBuffer(materialBuffer, MATERIAL_SIZE * i, scene.materialList[i].getValues());
+    }
+
     objectsBindGroup = device.createBindGroup({
         label: "objects bind group",
         layout: pipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: uniformBuffer } },
-            { binding: 1, resource: { buffer: objectInfoBuffer } }
+            { binding: 1, resource: { buffer: objectInfoBuffer } },
+            { binding: 2, resource: { buffer: materialBuffer } }
         ]
     });
 
@@ -188,7 +201,6 @@ async function setupBuffers(scene) {
         for (let j = 0; j < m.indexCount; j++) {
             m.indices[j] += vIdx / 10;
         }
-        console.log(m.indices);
         vIdx += m.vertexCount * 10;
         indexList.set(m.indices, iIdx);
         iIdx += m.indexCount;
@@ -203,6 +215,7 @@ function render(scene) {
 
     device.queue.writeBuffer(uniformBuffer, 0, scene.camera.viewProjectionMatrix());
     device.queue.writeBuffer(uniformBuffer, 64, scene.camera.position);
+    device.queue.writeBuffer(uniformBuffer, 76, new Float32Array([scene.ambient]));
     device.queue.writeBuffer(uniformBuffer, 80, scene.lightPosition);
 
     for (let i = 0; i < scene.numObjects; i++) {
@@ -210,6 +223,7 @@ function render(scene) {
         o.calculateMatrices();
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE, o.worldMatrix);
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE, o.normalMatrix);
+        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE + MAT3_SIZE, new Uint32Array([o.materialId]));
     }
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
