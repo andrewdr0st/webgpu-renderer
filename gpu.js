@@ -22,6 +22,8 @@ let objectInfoBuffer;
 let materialBuffer;
 let objectsBindGroup;
 
+let testTexture;
+let testSampler;
 let depthTexture;
 
 let vertexCount = 0;
@@ -38,6 +40,12 @@ const MATERIAL_SIZE = 16;
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
     return await response.text();
+}
+
+async function loadImage(path) {
+    const response = await fetch("textures/" + path);
+    const blob = await response.blob();
+    return await createImageBitmap(blob);
 }
 
 async function setupGPUDevice() {
