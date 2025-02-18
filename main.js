@@ -21,6 +21,7 @@ async function init() {
     await setupGPUDevice();
     setupCanvas();
     await setupRenderPipeline();
+    await setupTextures();
     await setupBuffers(scene);
     requestAnimationFrame(main);
 }

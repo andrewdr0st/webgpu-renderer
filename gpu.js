@@ -24,6 +24,7 @@ let objectsBindGroup;
 
 let testTexture;
 let testSampler;
+let texturesBindGroup;
 let depthTexture;
 
 let vertexCount = 0;
@@ -218,6 +219,31 @@ async function setupBuffers(scene) {
     device.queue.writeBuffer(indexBuffer, 0, indexList);
 }
 
+async function setupTextures() {
+    testBitmap = await loadImage("testf.png");
+
+    testTexture = device.createTexture({
+        size: [16, 16, 1],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    device.queue.copyExternalImageToTexture({ source: testBitmap }, { texture: testTexture}, [16, 16]);
+
+    testSampler = device.createSampler({
+        minFiter: "linear",
+        magFilter: "nearest"
+    });
+
+    texturesBindGroup = device.createBindGroup({
+        label: "textures bind group",
+        layout: pipeline.getBindGroupLayout(1),
+        entries: [
+            { binding: 0, resource: testSampler},
+            { binding: 1, resource: testTexture.createView() }
+        ]
+    });
+}
+
 function render(scene) {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
@@ -241,6 +267,7 @@ function render(scene) {
     pass.setVertexBuffer(0, vertexBuffer);
     pass.setIndexBuffer(indexBuffer, "uint32");
     pass.setBindGroup(0, objectsBindGroup);
+    pass.setBindGroup(1, texturesBindGroup);
     pass.drawIndexed(scene.numIndices);
     pass.end();
 
