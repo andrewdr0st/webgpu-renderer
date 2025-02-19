@@ -45,6 +45,7 @@ struct vsOutput {
 @group(1) @binding(0) var n_sampler: sampler;
 @group(1) @binding(1) var l_sampler: sampler;
 @group(1) @binding(2) var textures16: texture_2d_array<f32>;
+@group(1) @binding(3) var textures64: texture_2d_array<f32>;
 
 @vertex fn vs(vert: vertex) -> vsOutput {
     let obj = objects[vert.id];
@@ -70,7 +71,23 @@ struct vsOutput {
     let diffuse = max(dot(normal, surface_to_light), 0) * material.diffuse;
     let specular = pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular;
     
-    let trgb = select(textureSample(textures16, n_sampler, fract(fsIn.tc), material.tex), textureSample(textures16, l_sampler, fract(fsIn.tc), material.tex), material.samp == 1).rgb;
-    let color = trgb * (ambient + diffuse + specular);
-    return vec4f(color, fsIn.color.a);
+    let c = sampleTexture(fract(fsIn.tc), material.samp, material.tex, material.tex_array);
+    let color = c * (ambient + diffuse + specular);
+    return color;
+}
+
+fn sampleTexture(tc: vec2f, samp: u32, t: u32, arr: u32) -> vec4f {
+    return select(
+        select(
+            textureSample(textures16, n_sampler, tc, t),
+            textureSample(textures64, n_sampler, tc, t),
+            arr == 1
+        ),
+        select(
+            textureSample(textures16, l_sampler, tc, t),
+            textureSample(textures64, l_sampler, tc, t),
+            arr == 1
+        ),
+        samp == 1
+    );
 }

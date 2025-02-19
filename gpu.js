@@ -25,6 +25,7 @@ let objectsBindGroup;
 let nearestSampler;
 let linearSampler;
 let textureArray16;
+let textureArray64;
 let texturesBindGroup;
 let depthTexture;
 
@@ -173,7 +174,6 @@ async function setupBuffers(scene) {
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
     for (let i = 0; i < scene.numMaterials; i++) {
-        console.log(scene.materialList[i].getValues());
         device.queue.writeBuffer(materialBuffer, MATERIAL_SIZE * i, scene.materialList[i].getValues());
     }
 
@@ -224,6 +224,7 @@ async function setupBuffers(scene) {
 async function setupTextures() {
     testBitmap = await loadImage("testf.png");
     brickBitmap = await loadImage("brick16x16.png");
+    grassBitmap = await loadImage("grassbad64x64.png");
 
     nearestSampler = device.createSampler({
         minFilter: "nearest",
@@ -243,13 +244,21 @@ async function setupTextures() {
     device.queue.copyExternalImageToTexture({ source: testBitmap }, { texture: textureArray16, origin: { z: 0 } }, [16, 16]);
     device.queue.copyExternalImageToTexture({ source: brickBitmap }, { texture: textureArray16, origin: { z: 1 } }, [16, 16]);
 
+    textureArray64 = device.createTexture({
+        size: [64, 64, 2],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    device.queue.copyExternalImageToTexture({ source: grassBitmap }, { texture: textureArray64, origin: { z: 0 } }, [64, 64]);
+
     texturesBindGroup = device.createBindGroup({
         label: "textures bind group",
         layout: pipeline.getBindGroupLayout(1),
         entries: [
             { binding: 0, resource: nearestSampler},
             { binding: 1, resource: linearSampler},
-            { binding: 2, resource: textureArray16.createView() }
+            { binding: 2, resource: textureArray16.createView() },
+            { binding: 3, resource: textureArray64.createView() }
         ]
     });
 }
