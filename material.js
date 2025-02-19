@@ -18,6 +18,5 @@ class Material {
     updateValues() {
         this.valuesF.set([this.diffuse, this.specular, this.shininess], 0);
         this.valuesU.set([this.samplerId, this.textureId, this.textureArray], 3);
-        console.log(this.valuesU);
     }
 }

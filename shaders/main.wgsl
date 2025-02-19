@@ -70,7 +70,7 @@ struct vsOutput {
     let diffuse = max(dot(normal, surface_to_light), 0) * material.diffuse;
     let specular = pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular;
     
-    let trgb = select(textureSample(textures16, n_sampler, fract(fsIn.tc), material.samp), textureSample(textures16, l_sampler, fract(fsIn.tc), material.samp), material.samp > 0).rgb;
+    let trgb = select(textureSample(textures16, n_sampler, fract(fsIn.tc), material.tex), textureSample(textures16, l_sampler, fract(fsIn.tc), material.tex), material.samp == 1).rgb;
     let color = trgb * (ambient + diffuse + specular);
     return vec4f(color, fsIn.color.a);
 }

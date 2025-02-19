@@ -6,7 +6,6 @@ class SceneObject {
         this.worldMatrix;
         this.normalMatrix;
         this.materialId = 0;
-        this.samplerId = 0;
     }
 
     calculateMatrices() {

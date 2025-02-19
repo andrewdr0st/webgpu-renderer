@@ -37,7 +37,7 @@ const MAT3_SIZE = 48;
 const MAT4_SIZE = 64;
 const UNIFORM_BUFFER_SIZE = 96;
 const OBJECT_INFO_SIZE = 128;
-const MATERIAL_SIZE = 32;
+const MATERIAL_SIZE = 24;
 
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
@@ -173,6 +173,7 @@ async function setupBuffers(scene) {
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
     for (let i = 0; i < scene.numMaterials; i++) {
+        console.log(scene.materialList[i].getValues());
         device.queue.writeBuffer(materialBuffer, MATERIAL_SIZE * i, scene.materialList[i].getValues());
     }
 
