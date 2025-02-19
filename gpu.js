@@ -22,8 +22,9 @@ let objectInfoBuffer;
 let materialBuffer;
 let objectsBindGroup;
 
+let nearestSampler;
+let linearSampler;
 let testTexture;
-let testSampler;
 let texturesBindGroup;
 let depthTexture;
 
@@ -229,17 +230,23 @@ async function setupTextures() {
     });
     device.queue.copyExternalImageToTexture({ source: testBitmap }, { texture: testTexture}, [16, 16]);
 
-    testSampler = device.createSampler({
-        minFiter: "linear",
+    nearestSampler = device.createSampler({
+        minFilter: "nearest",
         magFilter: "nearest"
+    });
+
+    linearSampler = device.createSampler({
+        minFilter: "linear",
+        magFilter: "linear"
     });
 
     texturesBindGroup = device.createBindGroup({
         label: "textures bind group",
         layout: pipeline.getBindGroupLayout(1),
         entries: [
-            { binding: 0, resource: testSampler},
-            { binding: 1, resource: testTexture.createView() }
+            { binding: 0, resource: nearestSampler},
+            { binding: 1, resource: linearSampler},
+            { binding: 2, resource: testTexture.createView() }
         ]
     });
 }
@@ -257,7 +264,7 @@ function render(scene) {
         o.calculateMatrices();
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE, o.worldMatrix);
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE, o.normalMatrix);
-        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE + MAT3_SIZE, new Uint32Array([o.materialId]));
+        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE + MAT3_SIZE, new Uint32Array([o.materialId, o.samplerId]));
     }
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });

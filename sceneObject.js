@@ -6,6 +6,7 @@ class SceneObject {
         this.worldMatrix;
         this.normalMatrix;
         this.materialId = 0;
+        this.samplerId = 0;
     }
 
     calculateMatrices() {
@@ -14,5 +15,13 @@ class SceneObject {
         let nm = mat3.fromMat4(this.worldMatrix);
         nm = mat3.inverse(nm);
         this.normalMatrix = mat3.transpose(nm);
+    }
+
+    tileTexture(x, y) {
+        for (let i = 0; i < this.mesh.vertexCount; i++) {
+            let offset = i * 10 + 3;
+            this.mesh.vertices[offset] *= x;
+            this.mesh.vertices[offset + 1] *= y;
+        }
     }
 }

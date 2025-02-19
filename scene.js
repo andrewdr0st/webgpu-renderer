@@ -40,7 +40,9 @@ class TestScene extends Scene {
         let planeMesh = new Mesh();
         await planeMesh.parseObjFile("plane.obj");
         let floor = new SceneObject(planeMesh);
-        floor.scale = [100, 1, 100];
+        floor.scale = [50, 1, 50];
+        floor.samplerId = 1;
+        floor.tileTexture(20, 10);
         this.addObject(floor);
 
         let cubeMesh = new Mesh();
