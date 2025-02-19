@@ -9,16 +9,16 @@ struct sceneInfo {
 struct objectInfo {
     world_matrix: mat4x4f,
     normal_matrix: mat3x3f,
-    material: u32,
-    samp: u32,
-    tex_array: u32,
-    tex: u32
+    material: u32
 };
 
 struct materialInfo {
     diffuse: f32,
     specular: f32,
-    shininess: f32
+    shininess: f32,
+    samp: u32,
+    tex: u32,
+    tex_array: u32
 };
 
 struct vertex {
@@ -36,8 +36,7 @@ struct vsOutput {
     @location(2) normal: vec3f,
     @location(3) surface_to_light: vec3f,
     @location(4) surface_to_view: vec3f,
-    @location(5) @interpolate(flat) material: u32,
-    @location(6) @interpolate(flat) samp: u32
+    @location(5) @interpolate(flat) material: u32
 };
 
 @group(0) @binding(0) var<uniform> scene: sceneInfo;
@@ -45,7 +44,7 @@ struct vsOutput {
 @group(0) @binding(2) var<storage, read> materials: array<materialInfo>;
 @group(1) @binding(0) var n_sampler: sampler;
 @group(1) @binding(1) var l_sampler: sampler;
-@group(1) @binding(2) var tex: texture_2d<f32>;
+@group(1) @binding(2) var textures16: texture_2d_array<f32>;
 
 @vertex fn vs(vert: vertex) -> vsOutput {
     let obj = objects[vert.id];
@@ -58,7 +57,6 @@ struct vsOutput {
     vsOut.surface_to_light = scene.light_pos - world_pos;
     vsOut.surface_to_view = scene.view_pos - world_pos;
     vsOut.material = obj.material;
-    vsOut.samp = obj.samp;
     return vsOut;
 }
 
@@ -72,7 +70,7 @@ struct vsOutput {
     let diffuse = max(dot(normal, surface_to_light), 0) * material.diffuse;
     let specular = pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular;
     
-    let trgb = select(textureSample(tex, n_sampler, fract(fsIn.tc)), textureSample(tex, l_sampler, fract(fsIn.tc)), fsIn.samp > 0).rgb;
+    let trgb = select(textureSample(textures16, n_sampler, fract(fsIn.tc), material.samp), textureSample(textures16, l_sampler, fract(fsIn.tc), material.samp), material.samp > 0).rgb;
     let color = trgb * (ambient + diffuse + specular);
     return vec4f(color, fsIn.color.a);
 }

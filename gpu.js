@@ -24,7 +24,7 @@ let objectsBindGroup;
 
 let nearestSampler;
 let linearSampler;
-let testTexture;
+let textureArray16;
 let texturesBindGroup;
 let depthTexture;
 
@@ -37,7 +37,7 @@ const MAT3_SIZE = 48;
 const MAT4_SIZE = 64;
 const UNIFORM_BUFFER_SIZE = 96;
 const OBJECT_INFO_SIZE = 128;
-const MATERIAL_SIZE = 16;
+const MATERIAL_SIZE = 32;
 
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
@@ -222,13 +222,7 @@ async function setupBuffers(scene) {
 
 async function setupTextures() {
     testBitmap = await loadImage("testf.png");
-
-    testTexture = device.createTexture({
-        size: [16, 16, 1],
-        format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-    });
-    device.queue.copyExternalImageToTexture({ source: testBitmap }, { texture: testTexture}, [16, 16]);
+    brickBitmap = await loadImage("brick16x16.png");
 
     nearestSampler = device.createSampler({
         minFilter: "nearest",
@@ -240,13 +234,21 @@ async function setupTextures() {
         magFilter: "linear"
     });
 
+    textureArray16 = device.createTexture({
+        size: [16, 16, 2],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    device.queue.copyExternalImageToTexture({ source: testBitmap }, { texture: textureArray16, origin: { z: 0 } }, [16, 16]);
+    device.queue.copyExternalImageToTexture({ source: brickBitmap }, { texture: textureArray16, origin: { z: 1 } }, [16, 16]);
+
     texturesBindGroup = device.createBindGroup({
         label: "textures bind group",
         layout: pipeline.getBindGroupLayout(1),
         entries: [
             { binding: 0, resource: nearestSampler},
             { binding: 1, resource: linearSampler},
-            { binding: 2, resource: testTexture.createView() }
+            { binding: 2, resource: textureArray16.createView() }
         ]
     });
 }
@@ -264,7 +266,7 @@ function render(scene) {
         o.calculateMatrices();
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE, o.worldMatrix);
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE, o.normalMatrix);
-        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE + MAT3_SIZE, new Uint32Array([o.materialId, o.samplerId]));
+        device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE + MAT3_SIZE, new Uint32Array([o.materialId]));
     }
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });

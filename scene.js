@@ -34,14 +34,13 @@ class TestScene extends Scene {
         this.lightPosition = new Float32Array([10, 100, -5]);
         this.ambient = 0.4;
 
-        this.addMaterial(new Material(0.9, 0.05, 2));
-        this.addMaterial(new Material(0.8, 0.9, 50));
+        this.addMaterial(new Material(0.9, 0.05, 2, 1, 0, 0));
+        this.addMaterial(new Material(0.8, 0.9, 50, 0, 1, 0));
 
         let planeMesh = new Mesh();
         await planeMesh.parseObjFile("plane.obj");
         let floor = new SceneObject(planeMesh);
         floor.scale = [50, 1, 50];
-        floor.samplerId = 1;
         floor.tileTexture(20, 10);
         this.addObject(floor);
 
