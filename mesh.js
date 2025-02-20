@@ -1,5 +1,15 @@
 
+
 class Mesh {
+    constructor(v, vCount, i, iCount) {
+        this.vertices = new Float32Array(v);
+        this.vertexCount = vCount;
+        this.indices = new Float32Array(i);
+        this.indexCount = iCount;
+    }
+}
+
+class MeshLoader {
     constructor() {
         this.positions = [];
         this.textureCoords = [];
@@ -8,6 +18,10 @@ class Mesh {
         this.vertexCount = 0;
         this.indices = [];
         this.indexCount = 0;
+    }
+
+    getMesh() {
+        return new Mesh(this.vertices, this.vertexCount, this.indices, this.indexCount);
     }
 
     async parseObjFile(filename, invert=false) {
