@@ -13,6 +13,10 @@ let cameraRightVelocity = 0;
 let cubeTheta = 0;
 let cubeVelocity = -0.3;
 
+let sunTheta = 0;
+let sunVelocity = 0.1;
+let sunDist = 120;
+
 let camera = new Camera();
 let scene = new TestScene(camera);
 
@@ -30,6 +34,8 @@ function main(currentTime) {
     const deltaTime = (currentTime - lastFrameTime) * 0.001;
     lastFrameTime = currentTime;
     cubeTheta += cubeVelocity * deltaTime;
+    sunTheta += sunVelocity * deltaTime;
+    scene.lightPosition.set([Math.sin(sunTheta) * sunDist, Math.cos(sunTheta) * sunDist], 0);
     cameraForwardVelocity = inputMap[0] - inputMap[1];
     cameraRightVelocity = inputMap[3] - inputMap[2];
     camera.lookTo = [Math.sin(cameraTheta) * Math.cos(cameraPhi), Math.sin(cameraPhi), Math.cos(cameraTheta) * Math.cos(cameraPhi)];
