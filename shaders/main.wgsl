@@ -2,8 +2,9 @@
 struct sceneInfo {
     view: mat4x4f,
     view_pos: vec3f,
-    ambient: f32,
-    light_pos: vec3f  
+    light_view: mat4x4f,
+    light_pos: vec3f,
+    ambient: f32
 };
 
 struct objectInfo {
@@ -36,7 +37,8 @@ struct vsOutput {
     @location(2) normal: vec3f,
     @location(3) surface_to_light: vec3f,
     @location(4) surface_to_view: vec3f,
-    @location(5) @interpolate(flat) material: u32
+    @location(5) light_space_pos: vec3f,
+    @location(6) @interpolate(flat) material: u32
 };
 
 @group(0) @binding(0) var<uniform> scene: sceneInfo;
@@ -46,10 +48,13 @@ struct vsOutput {
 @group(1) @binding(1) var l_sampler: sampler;
 @group(1) @binding(2) var textures16: texture_2d_array<f32>;
 @group(1) @binding(3) var textures64: texture_2d_array<f32>;
+@group(1) @binding(4) var shadow_sampler: sampler_comparison;
+@group(1) @binding(5) var shadow_map: texture_depth_2d;
 
 @vertex fn vs(vert: vertex) -> vsOutput {
     let obj = objects[vert.id];
     let world_pos = (obj.world_matrix * vert.pos).xyz;
+    let light_space_pos = scene.light_view * vec4f(world_pos, 1.0);
     var vsOut: vsOutput;
     vsOut.position = scene.view * obj.world_matrix * vert.pos;
     vsOut.color = vert.color;
@@ -57,6 +62,7 @@ struct vsOutput {
     vsOut.normal = obj.normal_matrix * vert.normal;
     vsOut.surface_to_light = scene.light_pos - world_pos;
     vsOut.surface_to_view = scene.view_pos - world_pos;
+    vsOut.light_space_pos = vec3(light_space_pos.xy * vec2(0.5, -0.5) + vec2(0.5), light_space_pos.z);
     vsOut.material = obj.material;
     return vsOut;
 }
@@ -72,8 +78,12 @@ struct vsOutput {
     let specular = pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular;
     
     let c = sampleTexture(fract(fsIn.tc), material.samp, material.tex, material.tex_array);
-    let color = c * (ambient + diffuse + specular);
+    var color = c * (ambient + (diffuse + specular) * inShadow(fsIn.light_space_pos));
     return color;
+}
+
+fn inShadow(shadow_pos: vec3f) -> f32 {
+    return textureSampleCompare(shadow_map, shadow_sampler, shadow_pos.xy, shadow_pos.z - 0.0005);
 }
 
 fn sampleTexture(tc: vec2f, samp: u32, t: u32, arr: u32) -> vec4f {

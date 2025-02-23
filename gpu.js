@@ -9,10 +9,12 @@ let canvasTexture;
 let scalingFactor = 1;
 let aspectRatio;
 
-let module;
+let renderModule;
 let renderPipeline;
-let shadowPipeline;
 let renderPassDescriptor;
+let shadowModule;
+let shadowPipeline;
+let shadowPassDescriptor;
 
 let vertexBuffer;
 let vertexColorBuffer;
@@ -33,6 +35,8 @@ let texturesBindGroupLayout;
 
 let depthTexture;
 let shadowDepthTexture;
+let shadowView;
+let shadowSampler;
 
 let vertexCount = 0;
 let indexCount = 0;
@@ -41,7 +45,7 @@ const VERTEX_SIZE = 40;
 const INDEX_SIZE = 4;
 const MAT3_SIZE = 48;
 const MAT4_SIZE = 64;
-const UNIFORM_BUFFER_SIZE = 96;
+const UNIFORM_BUFFER_SIZE = 160;
 const OBJECT_INFO_SIZE = 128;
 const MATERIAL_SIZE = 24;
 
@@ -90,9 +94,15 @@ async function setupRenderPipeline() {
     createBindGroupLayouts();
 
     let shaderCode = await loadWGSLShader("main.wgsl");
-    module = device.createShaderModule({
+    let shadowShader = await loadWGSLShader("shadow.wgsl");
+    renderModule = device.createShaderModule({
         label: "render shader",
         code: shaderCode
+    });
+
+    shadowModule = device.createShaderModule({
+        label: "shaow shader",
+        code: shadowShader
     });
 
     depthTexture = device.createTexture({
@@ -103,8 +113,38 @@ async function setupRenderPipeline() {
 
     shadowDepthTexture = device.createTexture({
         size: [1024, 1024],
-        format: "depth24plus",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT0 | GPUTextureUsage.TEXTURE_BINDING
+        format: "depth32float",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+    });
+
+    const shadowPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+            objectsBindGroupLayout
+        ]
+    });
+
+    shadowPipeline = device.createRenderPipeline({
+        label: "shadow pipeline",
+        layout: shadowPipelineLayout,
+        vertex: {
+            entryPoint: "vs",
+            buffers: [{
+                arrayStride: VERTEX_SIZE,
+                attributes: [
+                    { shaderLocation: 0, offset: 0, format: "float32x3"},
+                    { shaderLocation: 1, offset: 12, format: "float32x2"},
+                    { shaderLocation: 2, offset: 20, format: "float32x3"},
+                    { shaderLocation: 3, offset: 32, format: "unorm8x4"},
+                    { shaderLocation: 4, offset: 36, format: "uint32"}
+                ]
+            }],
+            module: shadowModule
+        },
+        depthStencil: {
+            depthWriteEnabled: true,
+            depthCompare: 'less',
+            format: 'depth32float'
+        }
     });
 
     const renderPipelineLayout = device.createPipelineLayout({
@@ -112,7 +152,7 @@ async function setupRenderPipeline() {
             objectsBindGroupLayout,
             texturesBindGroupLayout
         ]
-    })
+    });
 
     renderPipeline = device.createRenderPipeline({
         label: "render pipeline",
@@ -129,11 +169,11 @@ async function setupRenderPipeline() {
                     { shaderLocation: 4, offset: 36, format: "uint32"}
                 ]
             }],
-            module
+            module: renderModule
         },
         fragment: {
             entryPoint: "fs",
-            module,
+            module: renderModule,
             targets: [{ format: presentationFormat }]
         },
         primitive: {
@@ -159,6 +199,19 @@ async function setupRenderPipeline() {
             depthClearValue: 1.0,
             depthLoadOp: 'clear',
             depthStoreOp: 'store'
+        }
+    }
+
+    shadowView = shadowDepthTexture.createView();
+
+    shadowPassDescriptor = {
+        label: "shadow pass",
+        colorAttachments: [],
+        depthStencilAttachment: {
+            view: shadowView,
+            depthClearValue: 1.0,
+            depthLoadOp: "clear",
+            depthStoreOp: "store"
         }
     }
 }
@@ -256,6 +309,10 @@ async function setupTextures() {
         magFilter: "linear"
     });
 
+    shadowSampler = device.createSampler({
+        compare: "less"
+    });
+
     textureArray16 = device.createTexture({
         size: [16, 16, 2],
         format: "rgba8unorm",
@@ -275,10 +332,12 @@ async function setupTextures() {
         label: "textures bind group",
         layout: texturesBindGroupLayout,
         entries: [
-            { binding: 0, resource: nearestSampler},
-            { binding: 1, resource: linearSampler},
+            { binding: 0, resource: nearestSampler },
+            { binding: 1, resource: linearSampler },
             { binding: 2, resource: textureArray16.createView() },
-            { binding: 3, resource: textureArray64.createView() }
+            { binding: 3, resource: textureArray64.createView() },
+            { binding: 4, resource: shadowSampler },
+            { binding: 5, resource: shadowView }
         ]
     });
 }
@@ -320,6 +379,14 @@ function createBindGroupLayouts() {
                 binding: 3,
                 visibility: GPUShaderStage.FRAGMENT,
                 texture: { sampleType: "float", viewDimension: "2d-array" }
+            }, {
+                binding: 4,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: { type: "comparison" }
+            }, {
+                binding: 5,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: { sampleType: "depth" }
             }
         ]
     });
@@ -330,8 +397,10 @@ function render(scene) {
 
     device.queue.writeBuffer(uniformBuffer, 0, scene.camera.viewProjectionMatrix());
     device.queue.writeBuffer(uniformBuffer, 64, scene.camera.position);
-    device.queue.writeBuffer(uniformBuffer, 76, new Float32Array([scene.ambient]));
-    device.queue.writeBuffer(uniformBuffer, 80, scene.lightPosition);
+    device.queue.writeBuffer(uniformBuffer, 80, scene.lightViewMatrix);
+    device.queue.writeBuffer(uniformBuffer, 144, scene.lightPosition);
+    device.queue.writeBuffer(uniformBuffer, 156, new Float32Array([scene.ambient]));
+    
 
     for (let i = 0; i < scene.numObjects; i++) {
         let o = scene.objectList[i];
@@ -343,14 +412,22 @@ function render(scene) {
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
-    const pass = encoder.beginRenderPass(renderPassDescriptor);
-    pass.setPipeline(renderPipeline);
-    pass.setVertexBuffer(0, vertexBuffer);
-    pass.setIndexBuffer(indexBuffer, "uint32");
-    pass.setBindGroup(0, objectsBindGroup);
-    pass.setBindGroup(1, texturesBindGroup);
-    pass.drawIndexed(scene.numIndices);
-    pass.end();
+    const shadowPass = encoder.beginRenderPass(shadowPassDescriptor);
+    shadowPass.setPipeline(shadowPipeline);
+    shadowPass.setVertexBuffer(0, vertexBuffer);
+    shadowPass.setIndexBuffer(indexBuffer, "uint32");
+    shadowPass.setBindGroup(0, objectsBindGroup);
+    shadowPass.drawIndexed(scene.numIndices);
+    shadowPass.end();
+
+    const renderPass = encoder.beginRenderPass(renderPassDescriptor);
+    renderPass.setPipeline(renderPipeline);
+    renderPass.setVertexBuffer(0, vertexBuffer);
+    renderPass.setIndexBuffer(indexBuffer, "uint32");
+    renderPass.setBindGroup(0, objectsBindGroup);
+    renderPass.setBindGroup(1, texturesBindGroup);
+    renderPass.drawIndexed(scene.numIndices);
+    renderPass.end();
 
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
