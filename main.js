@@ -26,16 +26,16 @@ async function init() {
     setupCanvas();
     await setupRenderPipeline();
     await setupTextures();
-    await setupBuffers(scene);
+    setupBuffers(scene);
     requestAnimationFrame(main);
 }
 
 function main(currentTime) {
     const deltaTime = (currentTime - lastFrameTime) * 0.001;
     lastFrameTime = currentTime;
-    cubeTheta += cubeVelocity * deltaTime;
-    sunTheta += sunVelocity * deltaTime;
-    scene.lightPosition.set([Math.sin(sunTheta) * sunDist, Math.cos(sunTheta) * sunDist], 0);
+    //cubeTheta += cubeVelocity * deltaTime;
+    //sunTheta += sunVelocity * deltaTime;
+    //scene.lightPosition.set([Math.sin(sunTheta) * sunDist, Math.cos(sunTheta) * sunDist], 0);
     cameraForwardVelocity = inputMap[0] - inputMap[1];
     cameraRightVelocity = inputMap[3] - inputMap[2];
     camera.lookTo = [Math.sin(cameraTheta) * Math.cos(cameraPhi), Math.sin(cameraPhi), Math.cos(cameraTheta) * Math.cos(cameraPhi)];

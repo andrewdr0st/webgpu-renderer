@@ -10,7 +10,8 @@ let scalingFactor = 1;
 let aspectRatio;
 
 let module;
-let pipeline;
+let renderPipeline;
+let shadowPipeline;
 let renderPassDescriptor;
 
 let vertexBuffer;
@@ -21,13 +22,17 @@ let uniformBuffer;
 let objectInfoBuffer;
 let materialBuffer;
 let objectsBindGroup;
+let objectsBindGroupLayout;
 
 let nearestSampler;
 let linearSampler;
 let textureArray16;
 let textureArray64;
 let texturesBindGroup;
+let texturesBindGroupLayout;
+
 let depthTexture;
+let shadowDepthTexture;
 
 let vertexCount = 0;
 let indexCount = 0;
@@ -82,6 +87,8 @@ function setupCanvas() {
 }
 
 async function setupRenderPipeline() {
+    createBindGroupLayouts();
+
     let shaderCode = await loadWGSLShader("main.wgsl");
     module = device.createShaderModule({
         label: "render shader",
@@ -90,13 +97,26 @@ async function setupRenderPipeline() {
 
     depthTexture = device.createTexture({
         size: [canvasTexture.width, canvasTexture.height],
-        format: 'depth24plus',
+        format: "depth24plus",
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    pipeline = device.createRenderPipeline({
+    shadowDepthTexture = device.createTexture({
+        size: [1024, 1024],
+        format: "depth24plus",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT0 | GPUTextureUsage.TEXTURE_BINDING
+    });
+
+    const renderPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+            objectsBindGroupLayout,
+            texturesBindGroupLayout
+        ]
+    })
+
+    renderPipeline = device.createRenderPipeline({
         label: "render pipeline",
-        layout: "auto",
+        layout: renderPipelineLayout,
         vertex: {
             entryPoint: "vs",
             buffers: [{
@@ -143,7 +163,7 @@ async function setupRenderPipeline() {
     }
 }
 
-async function setupBuffers(scene) {
+function setupBuffers(scene) {
     vertexBuffer = device.createBuffer({
         label: "vertex buffer",
         size: scene.numVertices * VERTEX_SIZE,
@@ -179,7 +199,7 @@ async function setupBuffers(scene) {
 
     objectsBindGroup = device.createBindGroup({
         label: "objects bind group",
-        layout: pipeline.getBindGroupLayout(0),
+        layout: objectsBindGroupLayout,
         entries: [
             { binding: 0, resource: { buffer: uniformBuffer } },
             { binding: 1, resource: { buffer: objectInfoBuffer } },
@@ -253,12 +273,54 @@ async function setupTextures() {
 
     texturesBindGroup = device.createBindGroup({
         label: "textures bind group",
-        layout: pipeline.getBindGroupLayout(1),
+        layout: texturesBindGroupLayout,
         entries: [
             { binding: 0, resource: nearestSampler},
             { binding: 1, resource: linearSampler},
             { binding: 2, resource: textureArray16.createView() },
             { binding: 3, resource: textureArray64.createView() }
+        ]
+    });
+}
+
+function createBindGroupLayouts() {
+    objectsBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "uniform" }
+            }, {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "read-only-storage" }
+            }, {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "read-only-storage" }
+            }
+        ]
+    });
+
+    texturesBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: { type: "filtering" }
+            }, {
+                binding: 1,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: { type: "filtering" }
+            }, {
+                binding: 2,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: { sampleType: "float", viewDimension: "2d-array" }
+            }, {
+                binding: 3,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: { sampleType: "float", viewDimension: "2d-array" }
+            }
         ]
     });
 }
@@ -282,7 +344,7 @@ function render(scene) {
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
     const pass = encoder.beginRenderPass(renderPassDescriptor);
-    pass.setPipeline(pipeline);
+    pass.setPipeline(renderPipeline);
     pass.setVertexBuffer(0, vertexBuffer);
     pass.setIndexBuffer(indexBuffer, "uint32");
     pass.setBindGroup(0, objectsBindGroup);
