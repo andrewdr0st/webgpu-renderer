@@ -2,6 +2,7 @@ class Scene {
     constructor(camera) {
         this.camera = camera;
         this.lightPosition = new Float32Array([0, 100, 0]);
+        this.lightDirection = new Float32Array([-0.25, -1, 0.5]);
         this.lightViewMatrix;
         this.ambient = 0.25;
         this.meshList = [];
@@ -46,9 +47,13 @@ class TestScene extends Scene {
         await this.addMeshes(["plane.obj", "testcube.obj"]);
 
         this.camera.position = [0, 2.5, -5];
+        this.camera.updateLookAt();
         this.lightPosition = new Float32Array([100, 100, -30]);
-        let lightView = mat4.lookAt(this.lightPosition, [0, 0, 0], [0, 1, 0]);
-        let lightProj = mat4.ortho(-50, 50, -50, 50, -100, 500);
+        this.lightDirection = vec3.normalize(vec3.negate(this.lightDirection));
+        let frustumCorners = this.camera.frustumCorners();
+        console.log(frustumCorners);
+        let lightView = mat4.lookAt(this.lightDirection, [0, 0, 0], [0, 1, 0]);
+        let lightProj = mat4.ortho(-40, 40, -40, 40, -100, 100);
         this.lightViewMatrix = mat4.multiply(lightProj, lightView);
 
         this.ambient = 0.3;
@@ -67,5 +72,11 @@ class TestScene extends Scene {
         cube.scale = [5, 0.5, 3];
         cube.materialId = 1;
         this.addObject(cube);
+
+        let wall = new SceneObject(this.meshList[1].getMesh());
+        wall.position = [-10, 6, -13];
+        wall.scale = [15, 6, 0.5];
+        wall.materialId = 1;
+        this.addObject(wall);
     }
 }

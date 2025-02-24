@@ -6,7 +6,7 @@ class Camera {
         this.up = [0, 1, 0];
         this.forward;
         this.right;
-        this.setClipPlanes(0.2, 1000);
+        this.setClipPlanes(0.2, 100);
         this.setFov(60);
         this.updateLookAt();
     }
@@ -31,5 +31,19 @@ class Camera {
     setClipPlanes(near, far) {
         this.zNear = near;
         this.zFar = far;
+    }
+
+    frustumCorners() {
+        let c = [];
+        let inv = mat4.inverse(this.viewProjectionMatrix());
+        c.push(vec4.transformMat4(inv, [-1, -1, 0, 1]));
+        c.push(vec4.transformMat4(inv, [-1, -1, 1, 1]));
+        c.push(vec4.transformMat4(inv, [-1, 1, 0, 1]));
+        c.push(vec4.transformMat4(inv, [-1, 1, 1, 1]));
+        c.push(vec4.transformMat4(inv, [1, -1, 0, 1]));
+        c.push(vec4.transformMat4(inv, [1, -1, 1, 1]));
+        c.push(vec4.transformMat4(inv, [1, 1, 0, 1]));
+        c.push(vec4.transformMat4(inv, [1, 1, 1, 1]));
+        return c;
     }
 }

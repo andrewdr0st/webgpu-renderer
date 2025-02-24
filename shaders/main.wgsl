@@ -3,7 +3,7 @@ struct sceneInfo {
     view: mat4x4f,
     view_pos: vec3f,
     light_view: mat4x4f,
-    light_pos: vec3f,
+    light_dir: vec3f,
     ambient: f32
 };
 
@@ -35,13 +35,12 @@ struct vsOutput {
     @location(0) color: vec4f,
     @location(1) tc: vec2f,
     @location(2) normal: vec3f,
-    @location(3) surface_to_light: vec3f,
-    @location(4) surface_to_view: vec3f,
-    @location(5) light_space_pos: vec3f,
-    @location(6) @interpolate(flat) material: u32
+    @location(3) surface_to_view: vec3f,
+    @location(4) light_space_pos: vec3f,
+    @location(5) @interpolate(flat) material: u32
 };
 
-const SHADOW_BIAS = 0.0007;
+const SHADOW_BIAS = 0.0035;
 const SHADOW_MAP_SIZE = 2048.0;
 const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
 
@@ -64,7 +63,6 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
     vsOut.color = vert.color;
     vsOut.tc = vert.tc;
     vsOut.normal = obj.normal_matrix * vert.normal;
-    vsOut.surface_to_light = scene.light_pos - world_pos;
     vsOut.surface_to_view = scene.view_pos - world_pos;
     vsOut.light_space_pos = vec3(light_space_pos.xy * vec2(0.5, -0.5) + vec2(0.5), light_space_pos.z);
     vsOut.material = obj.material;
@@ -74,11 +72,10 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
 @fragment fn fs(fsIn: vsOutput) -> @location(0) vec4f {
     let material = materials[fsIn.material];
     let normal = normalize(fsIn.normal);
-    let surface_to_light = normalize(fsIn.surface_to_light);
-    let half_vector = normalize(fsIn.surface_to_light + fsIn.surface_to_view);
+    let half_vector = normalize(scene.light_dir + fsIn.surface_to_view);
 
     let ambient = scene.ambient;
-    let diffuse = max(dot(normal, surface_to_light), 0) * material.diffuse;
+    let diffuse = max(dot(normal, scene.light_dir), 0) * material.diffuse;
     let specular = pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular;
     
     let c = sampleTexture(fract(fsIn.tc), material.samp, material.tex, material.tex_array);
