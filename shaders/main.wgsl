@@ -41,6 +41,10 @@ struct vsOutput {
     @location(6) @interpolate(flat) material: u32
 };
 
+const SHADOW_BIAS = 0.0007;
+const SHADOW_MAP_SIZE = 2048.0;
+const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
+
 @group(0) @binding(0) var<uniform> scene: sceneInfo;
 @group(0) @binding(1) var<storage, read> objects: array<objectInfo>;
 @group(0) @binding(2) var<storage, read> materials: array<materialInfo>;
@@ -83,7 +87,14 @@ struct vsOutput {
 }
 
 fn inShadow(shadow_pos: vec3f) -> f32 {
-    return textureSampleCompare(shadow_map, shadow_sampler, shadow_pos.xy, shadow_pos.z - 0.0005);
+    var visibility = 0.0;
+    for (var y = -1.0; y <= 1; y += 1) {
+        for (var x = -1.0; x <= 1; x += 1) {
+            let offset = vec2f(x, y) * SHADOW_SAMPLE_OFFSET;
+            visibility += textureSampleCompare(shadow_map, shadow_sampler, shadow_pos.xy + offset, shadow_pos.z - SHADOW_BIAS);
+        }
+    }
+    return visibility * 0.111111;
 }
 
 fn sampleTexture(tc: vec2f, samp: u32, t: u32, arr: u32) -> vec4f {

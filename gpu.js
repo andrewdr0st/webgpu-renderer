@@ -48,6 +48,7 @@ const MAT4_SIZE = 64;
 const UNIFORM_BUFFER_SIZE = 160;
 const OBJECT_INFO_SIZE = 128;
 const MATERIAL_SIZE = 24;
+const SHADOW_MAP_SIZE = 2048;
 
 async function loadWGSLShader(f) {
     let response = await fetch("shaders/" + f);
@@ -112,7 +113,7 @@ async function setupRenderPipeline() {
     });
 
     shadowDepthTexture = device.createTexture({
-        size: [1024, 1024],
+        size: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE],
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
     });
