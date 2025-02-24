@@ -396,9 +396,9 @@ function createBindGroupLayouts() {
 function render(scene) {
     renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
 
-    device.queue.writeBuffer(uniformBuffer, 0, scene.camera.viewProjectionMatrix());
+    device.queue.writeBuffer(uniformBuffer, 0, scene.camera.viewProjectionMatrix);
     device.queue.writeBuffer(uniformBuffer, 64, scene.camera.position);
-    device.queue.writeBuffer(uniformBuffer, 80, scene.lightViewMatrix);
+    device.queue.writeBuffer(uniformBuffer, 80, scene.lightViewMatrices[0]);
     device.queue.writeBuffer(uniformBuffer, 144, scene.lightDirection);
     device.queue.writeBuffer(uniformBuffer, 156, new Float32Array([scene.ambient]));
     

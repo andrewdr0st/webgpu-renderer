@@ -3,7 +3,9 @@ class Scene {
         this.camera = camera;
         this.lightPosition = new Float32Array([0, 100, 0]);
         this.lightDirection = new Float32Array([-0.25, -1, 0.5]);
-        this.lightViewMatrix;
+        this.lightViewMatrices = [null, null, null];
+        this.shadowMapCount = 1;
+        this.shadowMapDivisions = [-0.15, 0.99, 0.4, 1];
         this.ambient = 0.25;
         this.meshList = [];
         this.numMeshes = 0;
@@ -25,6 +27,35 @@ class Scene {
     addMaterial(m) {
         this.materialList.push(m);
         this.numMaterials++;
+    }
+
+    updateLightViewMatrices() {
+        for (let j = 0; j < this.shadowMapCount; j++) {
+            let lightView = mat4.lookAt(vec3.scale(this.lightDirection, 5), [0, 0, 0], [0, 1, 0]);
+            let frustumCorners = this.camera.frustumCorners([this.shadowMapDivisions[j], this.shadowMapDivisions[j + 1]]);
+            for (let i = 0; i < 8; i++) {
+                let c = frustumCorners[i];
+                let v4 = [c[0], c[1], c[2], 1];
+                frustumCorners[i] = vec4.transformMat4(v4, lightView);
+            }
+            let minX = frustumCorners[0][0];
+            let maxX = frustumCorners[0][0];
+            let minY = frustumCorners[0][1];
+            let maxY = frustumCorners[0][1];
+            let minZ = frustumCorners[0][2];
+            let maxZ = frustumCorners[0][2];
+            for (let i = 1; i < 8; i++) {
+                let c = frustumCorners[i];
+                minX = Math.min(minX, c[0]);
+                maxX = Math.max(maxX, c[0]);
+                minY = Math.min(minY, c[1]);
+                maxY = Math.max(maxY, c[1]);
+                minZ = Math.min(minZ, c[2]);
+                maxZ = Math.max(maxZ, c[2]);
+            }
+            let lightProj = mat4.ortho(minX, maxX, minY, maxY, -maxZ, -minZ);
+            this.lightViewMatrices[j] = mat4.multiply(lightProj, lightView);
+        }
     }
 
     async addMeshes(paths) {
@@ -50,11 +81,6 @@ class TestScene extends Scene {
         this.camera.updateLookAt();
         this.lightPosition = new Float32Array([100, 100, -30]);
         this.lightDirection = vec3.normalize(vec3.negate(this.lightDirection));
-        let frustumCorners = this.camera.frustumCorners();
-        console.log(frustumCorners);
-        let lightView = mat4.lookAt(this.lightDirection, [0, 0, 0], [0, 1, 0]);
-        let lightProj = mat4.ortho(-40, 40, -40, 40, -100, 100);
-        this.lightViewMatrix = mat4.multiply(lightProj, lightView);
 
         this.ambient = 0.3;
 

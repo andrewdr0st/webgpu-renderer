@@ -40,7 +40,7 @@ struct vsOutput {
     @location(5) @interpolate(flat) material: u32
 };
 
-const SHADOW_BIAS = 0.0035;
+const SHADOW_BIAS = 0.001;
 const SHADOW_MAP_SIZE = 2048.0;
 const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
 
@@ -76,7 +76,7 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
 
     let ambient = scene.ambient;
     let diffuse = max(dot(normal, scene.light_dir), 0) * material.diffuse;
-    let specular = pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular;
+    let specular = select(0, pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular, diffuse > 0);
     
     let c = sampleTexture(fract(fsIn.tc), material.samp, material.tex, material.tex_array);
     var color = c * (ambient + (diffuse + specular) * inShadow(fsIn.light_space_pos));
