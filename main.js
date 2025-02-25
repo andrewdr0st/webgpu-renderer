@@ -45,6 +45,7 @@ function main(currentTime) {
     camera.position = vec3.add(camera.position, vec3.scale(moveVec, deltaTime * cameraSpeed));
     camera.updateLookAt();
     scene.updateLightViewMatrices();
+    setupDebugVertexBuffer();
     render(scene);
     requestAnimationFrame(main);
 }
