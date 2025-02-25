@@ -2,9 +2,12 @@ let adapter;
 let device;
 let presentationFormat;
 
-let canvas = document.getElementById("canvas");;
+let canvas = document.getElementById("canvas");
 let context;
 let canvasTexture;
+let debugCanvas = document.getElementById("debug-canvas");
+let debugContext;
+let debugTexture;
 
 let scalingFactor = 1;
 let aspectRatio;
@@ -15,6 +18,9 @@ let renderPassDescriptor;
 let shadowModule;
 let shadowPipeline;
 let shadowPassDescriptor;
+let debugModule;
+let debugPipeline;
+let debugPassDescriptor;
 
 let vertexBuffer;
 let vertexColorBuffer;
