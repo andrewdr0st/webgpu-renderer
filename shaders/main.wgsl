@@ -26,18 +26,16 @@ struct vertex {
     @location(0) pos: vec4f,
     @location(1) tc: vec2f,
     @location(2) normal: vec3f,
-    @location(3) color: vec4f,
-    @location(4) id: u32
+    @location(3) id: u32
 };
 
 struct vsOutput {
     @builtin(position) position: vec4f,
-    @location(0) color: vec4f,
-    @location(1) tc: vec2f,
-    @location(2) normal: vec3f,
-    @location(3) surface_to_view: vec3f,
-    @location(4) light_space_pos: vec3f,
-    @location(5) @interpolate(flat) material: u32
+    @location(0) tc: vec2f,
+    @location(1) normal: vec3f,
+    @location(2) surface_to_view: vec3f,
+    @location(3) light_space_pos: vec3f,
+    @location(4) @interpolate(flat) material: u32
 };
 
 const SHADOW_BIAS = 0.001;
@@ -60,7 +58,6 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
     let light_space_pos = scene.light_view * vec4f(world_pos, 1.0);
     var vsOut: vsOutput;
     vsOut.position = scene.view * obj.world_matrix * vert.pos;
-    vsOut.color = vert.color;
     vsOut.tc = vert.tc;
     vsOut.normal = obj.normal_matrix * vert.normal;
     vsOut.surface_to_view = scene.view_pos - world_pos;
@@ -79,7 +76,8 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
     let specular = select(0, pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular, diffuse > 0);
     
     let c = sampleTexture(fract(fsIn.tc), material.samp, material.tex, material.tex_array);
-    var color = c * (ambient + (diffuse + specular) * inShadow(fsIn.light_space_pos));
+    //let color = c * (ambient + (diffuse + specular) * inShadow(fsIn.light_space_pos));
+    let color = c * (ambient + diffuse + specular);
     return color;
 }
 

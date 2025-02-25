@@ -23,9 +23,9 @@ let debugPipeline;
 let debugPassDescriptor;
 
 let vertexBuffer;
-let vertexColorBuffer;
-let instanceBuffer;
 let indexBuffer;
+let debugVertexBuffer;
+let debugIndexBuffer;
 let uniformBuffer;
 let objectInfoBuffer;
 let materialBuffer;
@@ -47,7 +47,9 @@ let shadowSampler;
 let vertexCount = 0;
 let indexCount = 0;
 
-const VERTEX_SIZE = 40;
+let enableShadows = false;
+
+const VERTEX_SIZE = 36;
 const INDEX_SIZE = 4;
 const MAT3_SIZE = 48;
 const MAT4_SIZE = 64;
@@ -141,8 +143,7 @@ async function setupRenderPipeline() {
                     { shaderLocation: 0, offset: 0, format: "float32x3"},
                     { shaderLocation: 1, offset: 12, format: "float32x2"},
                     { shaderLocation: 2, offset: 20, format: "float32x3"},
-                    { shaderLocation: 3, offset: 32, format: "unorm8x4"},
-                    { shaderLocation: 4, offset: 36, format: "uint32"}
+                    { shaderLocation: 3, offset: 32, format: "uint32"}
                 ]
             }],
             module: shadowModule
@@ -172,8 +173,7 @@ async function setupRenderPipeline() {
                     { shaderLocation: 0, offset: 0, format: "float32x3"},
                     { shaderLocation: 1, offset: 12, format: "float32x2"},
                     { shaderLocation: 2, offset: 20, format: "float32x3"},
-                    { shaderLocation: 3, offset: 32, format: "unorm8x4"},
-                    { shaderLocation: 4, offset: 36, format: "uint32"}
+                    { shaderLocation: 3, offset: 32, format: "uint32"}
                 ]
             }],
             module: renderModule
@@ -267,17 +267,9 @@ function setupBuffers(scene) {
         ]
     });
 
-    let vertexList = new Float32Array(scene.numVertices * 10);
+    let vertexList = new Float32Array(scene.numVertices * 9);
     let indexList = new Uint32Array(scene.numIndices);
     let c = new Uint8Array(vertexList.buffer);
-    let colors = [
-        [30, 140, 90, 255],
-        [180, 40, 90, 255],
-        [120, 200, 170, 255],
-        [200, 200, 100, 255],
-        [200, 100, 200, 255],
-        [90, 90, 180, 255]
-    ];
 
     let vIdx = 0;
     let iIdx = 0;
@@ -285,14 +277,13 @@ function setupBuffers(scene) {
         let m = scene.objectList[i].mesh;
         vertexList.set(m.vertices, vIdx);
         for (let j = 0; j < m.vertexCount; j++) {
-            let idx = ((vIdx / 10) + j) * VERTEX_SIZE;
-            c.set(colors[i], idx + 32);
-            c.set([i], idx + 36);
+            let idx = ((vIdx / 9) + j) * VERTEX_SIZE;
+            c.set([i], idx + 32);
         }
         for (let j = 0; j < m.indexCount; j++) {
-            m.indices[j] += vIdx / 10;
+            m.indices[j] += vIdx / 9;
         }
-        vIdx += m.vertexCount * 10;
+        vIdx += m.vertexCount * 9;
         indexList.set(m.indices, iIdx);
         iIdx += m.indexCount;
     }
@@ -419,13 +410,15 @@ function render(scene) {
     
     const encoder = device.createCommandEncoder({ label: 'encoder' });
 
-    const shadowPass = encoder.beginRenderPass(shadowPassDescriptor);
-    shadowPass.setPipeline(shadowPipeline);
-    shadowPass.setVertexBuffer(0, vertexBuffer);
-    shadowPass.setIndexBuffer(indexBuffer, "uint32");
-    shadowPass.setBindGroup(0, objectsBindGroup);
-    shadowPass.drawIndexed(scene.numIndices);
-    shadowPass.end();
+    if (enableShadows) {
+        const shadowPass = encoder.beginRenderPass(shadowPassDescriptor);
+        shadowPass.setPipeline(shadowPipeline);
+        shadowPass.setVertexBuffer(0, vertexBuffer);
+        shadowPass.setIndexBuffer(indexBuffer, "uint32");
+        shadowPass.setBindGroup(0, objectsBindGroup);
+        shadowPass.drawIndexed(scene.numIndices);
+        shadowPass.end();
+    }
 
     const renderPass = encoder.beginRenderPass(renderPassDescriptor);
     renderPass.setPipeline(renderPipeline);

@@ -22,7 +22,7 @@ class SceneObject {
 
     tileTexture(x, y) {
         for (let i = 0; i < this.mesh.vertexCount; i++) {
-            let offset = i * 10 + 3;
+            let offset = i * 9 + 3;
             this.mesh.vertices[offset] *= x;
             this.mesh.vertices[offset + 1] *= y;
         }
