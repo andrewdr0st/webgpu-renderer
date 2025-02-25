@@ -118,7 +118,8 @@ function setupCanvas() {
     canvas.style.height = h * scalingFactor + "px";
     if (debug) {
         debugCamera = new Camera();
-        debugCamera.position = [0, 5, 100];
+        debugCamera.position = [0, 20, 50];
+        debugCamera.lookTo = [0, -0.4, -1];
         debugCamera.setClipPlanes(1, 1000);
         debugCamera.updateLookAt();
     }
@@ -334,13 +335,13 @@ function setupBuffers(scene) {
 
     debugVertexBuffer = device.createBuffer({
         label: "debug vertex buffer",
-        size: 32 * 4,
+        size: 32 * 4 * 2,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
 
     debugIndexBuffer = device.createBuffer({
         label: "debug index buffer",
-        size: 36 * 4,
+        size: 36 * 4 * 2,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
     });
 
@@ -385,7 +386,13 @@ function setupBuffers(scene) {
         0, 2, 4, 2, 4, 6,
         4, 5, 6, 5, 6, 7,
         2, 3, 6, 3, 6, 7,
-        1, 3, 5, 3, 5, 7
+        1, 3, 5, 3, 5, 7,
+        8, 9, 10, 9, 10, 11,
+        8, 9, 12, 9, 12, 13,
+        8, 10, 12, 10, 12, 14,
+        12, 13, 14, 13, 14, 15,
+        10, 11, 14, 11, 14, 15,
+        9, 11, 13, 11, 13, 15
     ]);
     device.queue.writeBuffer(debugIndexBuffer, 0, debugIndexList);
 
@@ -576,7 +583,7 @@ function render(scene) {
         debugPass.setVertexBuffer(0, debugVertexBuffer);
         debugPass.setIndexBuffer(debugIndexBuffer, "uint32");
         debugPass.setBindGroup(0, debugBindGroup);
-        debugPass.drawIndexed(36);
+        debugPass.drawIndexed(72);
         debugPass.end();
     }
 
@@ -586,11 +593,21 @@ function render(scene) {
 
 function setupDebugVertexBuffer() {
     let frustumCorners = scene.camera.frustumCorners([0, 1]);
-    let vList = new Float32Array(32);
+    let minmax = scene.minmax;
+    let vList = new Float32Array(32 * 2);
     let cList = new Uint8Array(vList.buffer);
     for (let i = 0; i < 8; i++) {
         vList.set(frustumCorners[i], i * 4);
         cList.set([64, 0, 0, 64], i * 16 + 12);
+    }
+    for (let x = 0; x < 2; x++) {
+        for (let y = 0; y < 2; y++) {
+            for (let z = 0; z < 2; z++) {
+                let i = 32 + x * 16 + y * 8 + z * 4;
+                vList.set([minmax[x], minmax[y + 2], minmax[z + 4]], i);
+                cList.set([0, 0, 64, 64], (i * 4) + 12);
+            }
+        }
     }
     device.queue.writeBuffer(debugVertexBuffer, 0, vList);
 }

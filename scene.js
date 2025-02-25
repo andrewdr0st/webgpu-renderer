@@ -5,7 +5,8 @@ class Scene {
         this.lightDirection = new Float32Array([-0.25, -1, 0.5]);
         this.lightViewMatrices = [null, null, null];
         this.shadowMapCount = 1;
-        this.shadowMapDivisions = [-0.15, 0.99, 0.4, 1];
+        this.shadowMapDivisions = [0, 1, 0.4, 1];
+        this.minmax = [0, 0, 0, 0, 0, 0];
         this.ambient = 0.25;
         this.meshList = [];
         this.numMeshes = 0;
@@ -36,7 +37,7 @@ class Scene {
             for (let i = 0; i < 8; i++) {
                 let c = frustumCorners[i];
                 let v4 = [c[0], c[1], c[2], 1];
-                frustumCorners[i] = vec4.transformMat4(v4, lightView);
+                //frustumCorners[i] = vec4.transformMat4(v4, lightView);
             }
             let minX = frustumCorners[0][0];
             let maxX = frustumCorners[0][0];
@@ -53,6 +54,7 @@ class Scene {
                 minZ = Math.min(minZ, c[2]);
                 maxZ = Math.max(maxZ, c[2]);
             }
+            this.minmax = [minX, maxX, minY, maxY, minZ, maxZ];
             let lightProj = mat4.ortho(minX, maxX, minY, maxY, -maxZ, -minZ);
             this.lightViewMatrices[j] = mat4.multiply(lightProj, lightView);
         }
