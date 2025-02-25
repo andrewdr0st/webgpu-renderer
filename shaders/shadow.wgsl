@@ -16,8 +16,7 @@ struct vertex {
     @location(0) pos: vec4f,
     @location(1) tc: vec2f,
     @location(2) normal: vec3f,
-    @location(3) color: vec4f,
-    @location(4) id: u32
+    @location(3) id: u32
 };
 
 @group(0) @binding(0) var<uniform> scene: sceneInfo;
