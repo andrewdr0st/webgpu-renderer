@@ -2,15 +2,12 @@ let adapter;
 let device;
 let presentationFormat;
 
-let canvas = document.getElementById("canvas");
+let canvas;
 let context;
 let canvasTexture;
-let debugCanvas = document.getElementById("debug-canvas");
+let debugCanvas;
 let debugContext;
 let debugTexture;
-
-let scalingFactor = 1;
-let aspectRatio;
 
 let renderModule;
 let renderPipeline;
@@ -87,37 +84,17 @@ async function setupGPUDevice() {
 }
 
 function setupCanvas() {
-    let w = Math.ceil(window.innerWidth / scalingFactor);
-    let h = Math.ceil(window.innerHeight / scalingFactor);
-    if (debug) {
-        w = Math.floor(w / 2);
-        debugCanvas.width = w;
-        debugCanvas.height = h;
-        debugContext = debugCanvas.getContext("webgpu");
-        debugContext.configure({
-            device,
-            format: presentationFormat,
-            alphaMode: 'premultiplied'
-        });
-        debugTexture = debugContext.getCurrentTexture();
-        debugCanvas.style.visibility = "visible";
-        debugCanvas.style.left = "75%";
-        canvas.style.left = "25%";
-    }
-    canvas.width = w;
-    canvas.height = h;
-    aspectRatio = canvas.clientWidth / canvas.clientHeight;
-    context = canvas.getContext("webgpu");
-    context.configure({
-        device,
-        format: presentationFormat,
-        alphaMode: 'premultiplied'
-    });
+    canvas = new canvasInfo(0.5, 1.0, 0.0, 0.0, true);
+    canvas.configureContext();
+    context = canvas.context;
     canvasTexture = context.getCurrentTexture();
-    canvas.style.width = w * scalingFactor + "px";
-    canvas.style.height = h * scalingFactor + "px";
+    scene.camera.aspectRatio = canvas.aspectRatio;
     if (debug) {
-        debugCamera = new Camera();
+        debugCanvas = new canvasInfo(0.5, 1.0, 0.5, 0.0);
+        debugCanvas.configureContext();
+        debugContext = debugCanvas.context;
+        debugTexture = debugContext.getCurrentTexture();
+        debugCamera = new Camera(debugCanvas.aspectRatio);
         debugCamera.position = [0, 20, 50];
         debugCamera.lookTo = [0, -0.4, -1];
         debugCamera.setClipPlanes(1, 1000);

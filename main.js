@@ -24,6 +24,9 @@ async function init() {
     await scene.init();
     await setupGPUDevice();
     setupCanvas();
+    canvas.canvas.onclick = () => {
+        canvas.canvas.requestPointerLock();
+    }
     await setupRenderPipeline();
     await setupTextures();
     setupBuffers(scene);
@@ -48,10 +51,6 @@ function main(currentTime) {
     setupDebugVertexBuffer();
     render(scene);
     requestAnimationFrame(main);
-}
-
-canvas.onclick = () => {
-    canvas.requestPointerLock();
 }
 
 document.addEventListener("keydown", (e) => {
