@@ -76,8 +76,8 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
     let specular = select(0, pow(max(0, dot(normal, half_vector)), material.shininess) * material.specular, diffuse > 0);
     
     let c = sampleTexture(fract(fsIn.tc), material.samp, material.tex, material.tex_array);
-    //let color = c * (ambient + (diffuse + specular) * inShadow(fsIn.light_space_pos));
-    let color = c * (ambient + diffuse + specular);
+    let color = c * (ambient + (diffuse + specular) * inShadow(fsIn.light_space_pos));
+    //let color = c * (ambient + diffuse + specular);
     return color;
 }
 

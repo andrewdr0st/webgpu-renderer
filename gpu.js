@@ -49,7 +49,7 @@ let shadowSampler;
 let vertexCount = 0;
 let indexCount = 0;
 
-let enableShadows = false;
+let enableShadows = true;
 let debug = true;
 let debugCamera;
 
@@ -593,21 +593,15 @@ function render(scene) {
 
 function setupDebugVertexBuffer() {
     let frustumCorners = scene.camera.frustumCorners([0, 1]);
-    let minmax = scene.minmax;
     let vList = new Float32Array(32 * 2);
     let cList = new Uint8Array(vList.buffer);
     for (let i = 0; i < 8; i++) {
         vList.set(frustumCorners[i], i * 4);
         cList.set([64, 0, 0, 64], i * 16 + 12);
     }
-    for (let x = 0; x < 2; x++) {
-        for (let y = 0; y < 2; y++) {
-            for (let z = 0; z < 2; z++) {
-                let i = 32 + x * 16 + y * 8 + z * 4;
-                vList.set([minmax[x], minmax[y + 2], minmax[z + 4]], i);
-                cList.set([0, 0, 64, 64], (i * 4) + 12);
-            }
-        }
+    for (let i = 0; i < 8; i++) {
+        vList.set(scene.lightCorners[i], 32 + i * 4);
+        cList.set([0, 0, 64, 64], 140 + i * 16);
     }
     device.queue.writeBuffer(debugVertexBuffer, 0, vList);
 }
