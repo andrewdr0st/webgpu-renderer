@@ -83,13 +83,13 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
 
 fn inShadow(shadow_pos: vec3f) -> f32 {
     var visibility = 0.0;
-    for (var y = -1.0; y <= 1; y += 1) {
-        for (var x = -1.0; x <= 1; x += 1) {
+    for (var y = -2.0; y <= 2; y += 1) {
+        for (var x = -2.0; x <= 2; x += 1) {
             let offset = vec2f(x, y) * SHADOW_SAMPLE_OFFSET;
             visibility += textureSampleCompare(shadow_map, shadow_sampler, shadow_pos.xy + offset, shadow_pos.z - SHADOW_BIAS);
         }
     }
-    return visibility * 0.111111;
+    return visibility * 0.04;
 }
 
 fn sampleTexture(tc: vec2f, samp: u32, t: u32, arr: u32) -> vec4f {

@@ -22,7 +22,10 @@ let scene = new TestScene(camera);
 
 async function init() {
     await scene.init();
-    await setupGPUDevice();
+    let webgpuSupport = await setupGPUDevice();
+    if (!webgpuSupport) {
+        return;
+    }
     setupCanvas();
     canvas.canvas.onclick = () => {
         canvas.canvas.requestPointerLock();
@@ -48,7 +51,7 @@ function main(currentTime) {
     camera.position = vec3.add(camera.position, vec3.scale(moveVec, deltaTime * cameraSpeed));
     camera.updateLookAt();
     scene.updateLightViewMatrices();
-    setupDebugVertexBuffer();
+    setupDebugVertexBuffer(scene);
     render(scene);
     requestAnimationFrame(main);
 }

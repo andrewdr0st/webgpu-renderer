@@ -4,8 +4,8 @@ class Scene {
         this.lightPosition = new Float32Array([0, 100, 0]);
         this.lightDirection = new Float32Array([-0.25, -1, 0.5]);
         this.lightViewMatrices = [null, null, null];
-        this.shadowMapCount = 1;
-        this.shadowMapDivisions = [0, 1, 0.4, 1];
+        this.shadowMapCount = 2;
+        this.shadowMapDivisions = [0, 0.5, 1, 1];
         this.lightCorners = [null, null, null, null, null, null, null, null];
         this.ambient = 0.25;
         this.meshList = [];
@@ -32,7 +32,7 @@ class Scene {
 
     updateLightViewMatrices() {
         for (let j = 0; j < this.shadowMapCount; j++) {
-            let frustumCorners = this.camera.frustumCorners([this.shadowMapDivisions[j], this.shadowMapDivisions[j + 1]]);
+            let frustumCorners = this.camera.frustumCorners(this.shadowMapDivisions[j], this.shadowMapDivisions[j + 1]);
             let center = [0, 0, 0];
             for (let i = 0; i < 8; i++) {
                 center = vec3.add(center, frustumCorners[i]);
