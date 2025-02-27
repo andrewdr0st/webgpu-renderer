@@ -1,7 +1,7 @@
 let canvasList = [];
 let scalingFactor = 1;
 
-class canvasInfo {
+class CanvasInfo {
     constructor(w, h, x, y, applyScaling = false) {
         this.canvas = document.createElement("canvas");
         document.body.appendChild(this.canvas);

@@ -8,6 +8,9 @@ let canvasTexture;
 let debugCanvas;
 let debugContext;
 let debugTexture;
+let texCanvas;
+let texContext;
+let texTexture;
 
 let renderModule;
 let renderPipeline;
@@ -18,6 +21,9 @@ let shadowPassDescriptor;
 let debugModule;
 let debugPipeline;
 let debugPassDescriptor;
+let texPipeline;
+let texModule;
+let texPassDescriptor;
 
 let vertexBuffer;
 let indexBuffer;
@@ -30,6 +36,8 @@ let objectsBindGroup;
 let objectsBindGroupLayout;
 let debugUniformBuffer;
 let debugBindGroup;
+let depthTexBindGroup;
+let depthTexBindGroupLayout;
 
 let nearestSampler;
 let linearSampler;
@@ -84,13 +92,13 @@ async function setupGPUDevice() {
 }
 
 function setupCanvas() {
-    canvas = new canvasInfo(0.5, 1.0, 0.0, 0.0, true);
+    canvas = new CanvasInfo(0.5, 1.0, 0.0, 0.0, true);
     canvas.configureContext();
     context = canvas.context;
     canvasTexture = context.getCurrentTexture();
     scene.camera.aspectRatio = canvas.aspectRatio;
     if (debug) {
-        debugCanvas = new canvasInfo(0.5, 1.0, 0.5, 0.0);
+        debugCanvas = new CanvasInfo(0.5, 1.0, 0.5, 0.0);
         debugCanvas.configureContext();
         debugContext = debugCanvas.context;
         debugTexture = debugContext.getCurrentTexture();
@@ -99,6 +107,9 @@ function setupCanvas() {
         debugCamera.lookTo = [0, -0.4, -1];
         debugCamera.setClipPlanes(1, 1000);
         debugCamera.updateLookAt();
+        texCanvas = new CanvasInfo(0.5, 0.33, 0.5, 0.67);
+        texCanvas.configureContext();
+        texContext = texCanvas.context;
     }
 }
 
@@ -108,6 +119,7 @@ async function setupRenderPipeline() {
     let shaderCode = await loadWGSLShader("main.wgsl");
     let shadowShader = await loadWGSLShader("shadow.wgsl");
     let debugCode = await loadWGSLShader("debug.wgsl");
+    let shadowTexCode = await loadWGSLShader("depthRender.wgsl");
 
     renderModule = device.createShaderModule({
         label: "render shader",
@@ -123,6 +135,11 @@ async function setupRenderPipeline() {
         label: "debug shader",
         code: debugCode
     })
+
+    texModule = device.createShaderModule({
+        label: "tex shader",
+        code: shadowTexCode
+    });
 
     depthTexture = device.createTexture({
         size: [canvasTexture.width, canvasTexture.height],
@@ -141,6 +158,26 @@ async function setupRenderPipeline() {
             objectsBindGroupLayout
         ]
     });
+
+    const depthPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+            depthTexBindGroupLayout
+        ]
+    });
+
+    texPipeline = device.createRenderPipeline({
+        label: "depth tex pipeline",
+        layout: depthPipelineLayout,
+        vertex: {
+            entryPoint: "vs",
+            module: texModule
+        },
+        fragment: {
+            entryPoint: "fs",
+            module: texModule,
+            targets: [{ format: presentationFormat }]
+        }
+    })
 
     debugPipeline = device.createRenderPipeline({
         label: "debug pipeline",
@@ -188,10 +225,10 @@ async function setupRenderPipeline() {
             buffers: [{
                 arrayStride: VERTEX_SIZE,
                 attributes: [
-                    { shaderLocation: 0, offset: 0, format: "float32x3"},
-                    { shaderLocation: 1, offset: 12, format: "float32x2"},
-                    { shaderLocation: 2, offset: 20, format: "float32x3"},
-                    { shaderLocation: 3, offset: 32, format: "uint32"}
+                    { shaderLocation: 0, offset: 0, format: "float32x3" },
+                    { shaderLocation: 1, offset: 12, format: "float32x2" },
+                    { shaderLocation: 2, offset: 20, format: "float32x3" },
+                    { shaderLocation: 3, offset: 32, format: "uint32" }
                 ]
             }],
             module: shadowModule
@@ -218,10 +255,10 @@ async function setupRenderPipeline() {
             buffers: [{
                 arrayStride: VERTEX_SIZE,
                 attributes: [
-                    { shaderLocation: 0, offset: 0, format: "float32x3"},
-                    { shaderLocation: 1, offset: 12, format: "float32x2"},
-                    { shaderLocation: 2, offset: 20, format: "float32x3"},
-                    { shaderLocation: 3, offset: 32, format: "uint32"}
+                    { shaderLocation: 0, offset: 0, format: "float32x3" },
+                    { shaderLocation: 1, offset: 12, format: "float32x2" },
+                    { shaderLocation: 2, offset: 20, format: "float32x3" },
+                    { shaderLocation: 3, offset: 32, format: "uint32" }
                 ]
             }],
             module: renderModule
@@ -282,6 +319,14 @@ async function setupRenderPipeline() {
             depthLoadOp: "load",
             depthStoreOp: "store"
         }
+    }
+
+    texPassDescriptor = {
+        label: "tex pass",
+        colorAttachments: [{
+            loadOp: "load",
+            storeOp: "store"
+        }]
     }
 }
 
@@ -444,6 +489,15 @@ async function setupTextures() {
             { binding: 5, resource: shadowView }
         ]
     });
+
+    depthTexBindGroup = device.createBindGroup({
+        label: "depth tex bind group",
+        layout: depthTexBindGroupLayout,
+        entries: [
+            { binding: 0, resource: shadowDepthTexture.createView() },
+            { binding: 1, resource: nearestSampler }
+        ]
+    });
 }
 
 function createBindGroupLayouts() {
@@ -491,6 +545,20 @@ function createBindGroupLayouts() {
                 binding: 5,
                 visibility: GPUShaderStage.FRAGMENT,
                 texture: { sampleType: "depth" }
+            }
+        ]
+    });
+
+    depthTexBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: { sampleType : "depth" }
+            }, {
+                binding: 1,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: { type: "non-filtering" }
             }
         ]
     });
@@ -562,6 +630,13 @@ function render(scene) {
         debugPass.setBindGroup(0, debugBindGroup);
         debugPass.drawIndexed(72);
         debugPass.end();
+
+        texPassDescriptor.colorAttachments[0].view = texContext.getCurrentTexture().createView();
+        const texPass = encoder.beginRenderPass(texPassDescriptor);
+        texPass.setPipeline(texPipeline);
+        texPass.setBindGroup(0, depthTexBindGroup);
+        texPass.draw(3);
+        texPass.end();
     }
 
     const commandBuffer = encoder.finish();
