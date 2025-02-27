@@ -103,8 +103,8 @@ function setupCanvas() {
         debugContext = debugCanvas.context;
         debugTexture = debugContext.getCurrentTexture();
         debugCamera = new Camera(debugCanvas.aspectRatio);
-        debugCamera.position = [0, 20, 50];
-        debugCamera.lookTo = [0, -0.4, -1];
+        debugCamera.position = [40, 30, 0];
+        debugCamera.lookTo = [-1, -0.7, 0];
         debugCamera.setClipPlanes(1, 1000);
         debugCamera.updateLookAt();
         texCanvas = new CanvasInfo(0.5, 0.33, 0.5, 0.67);
@@ -574,7 +574,7 @@ function render(scene) {
     device.queue.writeBuffer(uniformBuffer, 156, new Float32Array([scene.ambient]));
 
     if (debug) {
-        device.queue.writeBuffer(debugUniformBuffer, 0, debugCamera.viewProjectionMatrix);
+        device.queue.writeBuffer(debugUniformBuffer, 0, scene.lightViewMatrices[0]);
         device.queue.writeBuffer(debugUniformBuffer, 64, scene.camera.position);
         device.queue.writeBuffer(debugUniformBuffer, 80, scene.lightViewMatrices[0]);
         device.queue.writeBuffer(debugUniformBuffer, 144, scene.lightDirection);
@@ -590,7 +590,7 @@ function render(scene) {
         device.queue.writeBuffer(objectInfoBuffer, i * OBJECT_INFO_SIZE + MAT4_SIZE + MAT3_SIZE, new Uint32Array([o.materialId]));
     }
     
-    const encoder = device.createCommandEncoder({ label: 'encoder' });
+    const encoder = device.createCommandEncoder({ label: "encoder" });
 
     if (enableShadows) {
         const shadowPass = encoder.beginRenderPass(shadowPassDescriptor);
@@ -631,12 +631,14 @@ function render(scene) {
         debugPass.drawIndexed(72);
         debugPass.end();
 
+        /*
         texPassDescriptor.colorAttachments[0].view = texContext.getCurrentTexture().createView();
         const texPass = encoder.beginRenderPass(texPassDescriptor);
         texPass.setPipeline(texPipeline);
         texPass.setBindGroup(0, depthTexBindGroup);
         texPass.draw(3);
         texPass.end();
+        */
     }
 
     const commandBuffer = encoder.finish();

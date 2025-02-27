@@ -59,6 +59,10 @@ class Scene {
                 minZ = Math.min(minZ, c[2]);
                 maxZ = Math.max(maxZ, c[2]);
             }
+            maxZ += 20;
+            minZ -= 20;
+            maxX += 5;
+            minX -= 5;
             let minmax = [minX, maxX, minY, maxY, minZ, maxZ];
             let inv = mat4.inverse(lightView);
             for (let x = 0; x < 2; x++) {
@@ -95,7 +99,7 @@ class TestScene extends Scene {
         await this.addMeshes(["plane.obj", "testcube.obj"]);
 
         this.camera.position = [0, 2.5, -5];
-        this.camera.setClipPlanes(0.2, 20);
+        this.camera.setClipPlanes(0.2, 15);
         this.camera.updateLookAt();
         this.lightPosition = new Float32Array([100, 100, -30]);
         this.lightDirection = vec3.normalize(vec3.negate(this.lightDirection));
