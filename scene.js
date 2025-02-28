@@ -4,8 +4,9 @@ class Scene {
         this.lightPosition = new Float32Array([0, 100, 0]);
         this.lightDirection = new Float32Array([-0.25, -1, 0.5]);
         this.lightViewMatrices = [null, null, null];
-        this.shadowMapCount = 2;
-        this.shadowMapDivisions = [0, 0.5, 1, 1];
+        this.shadowMapCount = 3;
+        this.shadowMapDivisions = [0, 0.1, 0.4, 1];
+        this.depthList = new Float32Array(3);
         this.lightCorners = [null, null, null, null, null, null, null, null];
         this.ambient = 0.25;
         this.meshList = [];
@@ -99,7 +100,11 @@ class TestScene extends Scene {
         await this.addMeshes(["plane.obj", "testcube.obj"]);
 
         this.camera.position = [0, 2.5, -5];
-        this.camera.setClipPlanes(0.2, 15);
+        this.camera.setClipPlanes(0.2, 100);
+        for (let i = 0; i < this.shadowMapCount; i++) {
+            this.depthList.set([this.camera.zNear + this.camera.zLen * this.shadowMapDivisions[i + 1]], i);
+        }
+        console.log(this.depthList);
         this.camera.updateLookAt();
         this.lightPosition = new Float32Array([100, 100, -30]);
         this.lightDirection = vec3.normalize(vec3.negate(this.lightDirection));

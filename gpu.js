@@ -17,7 +17,6 @@ let renderPipeline;
 let renderPassDescriptor;
 let shadowModule;
 let shadowPipeline;
-let shadowPassDescriptor;
 let debugModule;
 let debugPipeline;
 let debugPassDescriptor;
@@ -34,6 +33,9 @@ let objectInfoBuffer;
 let materialBuffer;
 let objectsBindGroup;
 let objectsBindGroupLayout;
+let shadowBindGroupLayout;
+let shadowBindGroups = [];
+let shadowUniforms = [];
 let debugUniformBuffer;
 let debugBindGroup;
 let depthTexBindGroup;
@@ -48,7 +50,7 @@ let texturesBindGroupLayout;
 
 let depthTexture;
 let shadowDepthTexture;
-let shadowView;
+let shadowMaps;
 let shadowSampler;
 
 let vertexCount = 0;
@@ -62,7 +64,7 @@ const VERTEX_SIZE = 36;
 const INDEX_SIZE = 4;
 const MAT3_SIZE = 48;
 const MAT4_SIZE = 64;
-const UNIFORM_BUFFER_SIZE = 160;
+const UNIFORM_BUFFER_SIZE = MAT4_SIZE * 4 + 48;
 const OBJECT_INFO_SIZE = 128;
 const MATERIAL_SIZE = 24;
 const SHADOW_MAP_SIZE = 2048;
@@ -94,7 +96,7 @@ async function setupGPUDevice() {
 }
 
 function setupCanvas() {
-    canvas = new CanvasInfo(0.5, 1.0, 0.0, 0.0, true);
+    canvas = new CanvasInfo(debug ? 0.5 : 1.0, 1.0, 0.0, 0.0, true);
     canvas.configureContext();
     context = canvas.context;
     canvasTexture = context.getCurrentTexture();
@@ -138,13 +140,13 @@ async function setupRenderPipeline() {
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    shadowDepthTexture = device.createTexture({
-        size: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE],
-        format: "depth32float",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+    const shadowPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+            shadowBindGroupLayout
+        ]
     });
 
-    const shadowPipelineLayout = device.createPipelineLayout({
+    const debugPipelineLayout = device.createPipelineLayout({
         bindGroupLayouts: [
             objectsBindGroupLayout
         ]
@@ -172,7 +174,7 @@ async function setupRenderPipeline() {
 
     debugPipeline = device.createRenderPipeline({
         label: "debug pipeline",
-        layout: shadowPipelineLayout,
+        layout: debugPipelineLayout,
         vertex: {
             entryPoint: "vs",
             buffers: [{
@@ -285,19 +287,6 @@ async function setupRenderPipeline() {
         }
     }
 
-    shadowView = shadowDepthTexture.createView();
-
-    shadowPassDescriptor = {
-        label: "shadow pass",
-        colorAttachments: [],
-        depthStencilAttachment: {
-            view: shadowView,
-            depthClearValue: 1.0,
-            depthLoadOp: "clear",
-            depthStoreOp: "store"
-        }
-    }
-
     debugPassDescriptor = {
         label: "debug pass",
         colorAttachments: [{
@@ -337,25 +326,13 @@ function setupBuffers(scene) {
     uniformBuffer = device.createBuffer({
         label: "uniform buffer",
         size: UNIFORM_BUFFER_SIZE,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
     debugUniformBuffer = device.createBuffer({
         label: "debug uniform",
         size: UNIFORM_BUFFER_SIZE,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    debugVertexBuffer = device.createBuffer({
-        label: "debug vertex buffer",
-        size: 32 * 4 * 2,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    });
-
-    debugIndexBuffer = device.createBuffer({
-        label: "debug index buffer",
-        size: 36 * 4 * 2,
-        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
     objectInfoBuffer = device.createBuffer({
@@ -383,31 +360,9 @@ function setupBuffers(scene) {
         ]
     });
 
-    debugBindGroup = device.createBindGroup({
-        label: "debug bind group",
-        layout: objectsBindGroupLayout,
-        entries: [
-            { binding: 0, resource: { buffer: debugUniformBuffer } },
-            { binding: 1, resource: { buffer: objectInfoBuffer } },
-            { binding: 2, resource: { buffer: materialBuffer } }
-        ]
-    });
-
-    let debugIndexList = new Uint32Array([
-        0, 1, 2, 1, 2, 3,
-        0, 1, 4, 1, 4, 5,
-        0, 2, 4, 2, 4, 6,
-        4, 5, 6, 5, 6, 7,
-        2, 3, 6, 3, 6, 7,
-        1, 3, 5, 3, 5, 7,
-        8, 9, 10, 9, 10, 11,
-        8, 9, 12, 9, 12, 13,
-        8, 10, 12, 10, 12, 14,
-        12, 13, 14, 13, 14, 15,
-        10, 11, 14, 11, 14, 15,
-        9, 11, 13, 11, 13, 15
-    ]);
-    device.queue.writeBuffer(debugIndexBuffer, 0, debugIndexList);
+    if (debug) {
+        setupDebugBuffers(scene);
+    }
 
     let vertexList = new Float32Array(scene.numVertices * 9);
     let indexList = new Uint32Array(scene.numIndices);
@@ -432,6 +387,20 @@ function setupBuffers(scene) {
 
     device.queue.writeBuffer(vertexBuffer, 0, vertexList);
     device.queue.writeBuffer(indexBuffer, 0, indexList);
+
+    for (let i = 0; i < scene.shadowMapCount; i++) {
+        shadowUniforms.push(device.createBuffer({
+            size: MAT4_SIZE,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        }));
+        shadowBindGroups.push(device.createBindGroup({
+            layout: shadowBindGroupLayout,
+            entries: [
+                { binding: 0, resource: { buffer: shadowUniforms[i] } },
+                { binding: 1, resource: { buffer: objectInfoBuffer } }
+            ]
+        }));
+    }
 }
 
 async function setupTextures() {
@@ -451,6 +420,13 @@ async function setupTextures() {
 
     shadowSampler = device.createSampler({
         compare: "less"
+    });
+
+    shadowMaps = device.createTexture({
+        size: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, 3],
+        format: "depth32float",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        dimension: "2d"
     });
 
     textureArray16 = device.createTexture({
@@ -477,10 +453,11 @@ async function setupTextures() {
             { binding: 2, resource: textureArray16.createView() },
             { binding: 3, resource: textureArray64.createView() },
             { binding: 4, resource: shadowSampler },
-            { binding: 5, resource: shadowView }
+            { binding: 5, resource: shadowMaps.createView() }
         ]
     });
 
+    /*
     depthTexBindGroup = device.createBindGroup({
         label: "depth tex bind group",
         layout: depthTexBindGroupLayout,
@@ -489,6 +466,7 @@ async function setupTextures() {
             { binding: 1, resource: nearestSampler }
         ]
     });
+    */
 }
 
 function createBindGroupLayouts() {
@@ -535,8 +513,22 @@ function createBindGroupLayouts() {
             }, {
                 binding: 5,
                 visibility: GPUShaderStage.FRAGMENT,
-                texture: { sampleType: "depth" }
+                texture: { sampleType: "depth", viewDimension: "2d-array" }
             }
+        ]
+    });
+
+    shadowBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: { type: "uniform" }
+            }, {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: { type: "read-only-storage" }
+            },
         ]
     });
 
@@ -560,9 +552,12 @@ function render(scene) {
 
     device.queue.writeBuffer(uniformBuffer, 0, scene.camera.viewProjectionMatrix);
     device.queue.writeBuffer(uniformBuffer, 64, scene.camera.position);
-    device.queue.writeBuffer(uniformBuffer, 80, scene.lightViewMatrices[0]);
-    device.queue.writeBuffer(uniformBuffer, 144, scene.lightDirection);
-    device.queue.writeBuffer(uniformBuffer, 156, new Float32Array([scene.ambient]));
+    device.queue.writeBuffer(uniformBuffer, 80, scene.lightDirection);
+    device.queue.writeBuffer(uniformBuffer, 92, new Float32Array([scene.ambient]));
+    device.queue.writeBuffer(uniformBuffer, 96, scene.lightViewMatrices[0]);
+    device.queue.writeBuffer(uniformBuffer, 160, scene.lightViewMatrices[1]);
+    device.queue.writeBuffer(uniformBuffer, 224, scene.lightViewMatrices[2]);
+    device.queue.writeBuffer(uniformBuffer, 288, scene.depthList);
 
     for (let i = 0; i < scene.numObjects; i++) {
         let o = scene.objectList[i];
@@ -575,13 +570,31 @@ function render(scene) {
     const encoder = device.createCommandEncoder({ label: "encoder" });
 
     if (enableShadows) {
-        const shadowPass = encoder.beginRenderPass(shadowPassDescriptor);
-        shadowPass.setPipeline(shadowPipeline);
-        shadowPass.setVertexBuffer(0, vertexBuffer);
-        shadowPass.setIndexBuffer(indexBuffer, "uint32");
-        shadowPass.setBindGroup(0, objectsBindGroup);
-        shadowPass.drawIndexed(scene.numIndices);
-        shadowPass.end();
+        for (let i = 0; i < scene.shadowMapCount; i++) {
+            let shadowView = shadowMaps.createView({
+                baseArrayLayer: i,
+                arrayLayerCount: 1,
+                dimension: "2d"
+            });
+            let shadowPassDescriptor = {
+                label: "shadow pass",
+                colorAttachments: [],
+                depthStencilAttachment: {
+                    view: shadowView,
+                    depthClearValue: 1.0,
+                    depthLoadOp: "clear",
+                    depthStoreOp: "store"
+                }
+            }
+            device.queue.writeBuffer(shadowUniforms[i], 0, scene.lightViewMatrices[i]);
+            const shadowPass = encoder.beginRenderPass(shadowPassDescriptor);
+            shadowPass.setPipeline(shadowPipeline);
+            shadowPass.setVertexBuffer(0, vertexBuffer);
+            shadowPass.setIndexBuffer(indexBuffer, "uint32");
+            shadowPass.setBindGroup(0, shadowBindGroups[i]);
+            shadowPass.drawIndexed(scene.numIndices);
+            shadowPass.end();
+        }
     }
 
     const renderPass = encoder.beginRenderPass(renderPassDescriptor);

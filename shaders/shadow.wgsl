@@ -1,9 +1,5 @@
-struct sceneInfo {
-    view: mat4x4f,
-    view_pos: vec3f,
-    light_view: mat4x4f,
-    light_pos: vec3f,
-    ambient: f32
+struct lightMatrix {
+    light_view: mat4x4f
 };
 
 struct objectInfo {
@@ -19,11 +15,10 @@ struct vertex {
     @location(3) id: u32
 };
 
-@group(0) @binding(0) var<uniform> scene: sceneInfo;
+@group(0) @binding(0) var<uniform> matrix: lightMatrix;
 @group(0) @binding(1) var<storage, read> objects: array<objectInfo>;
-//@group(0) @binding(2) var<storage, read> materials: array<materialInfo>;
 
 @vertex fn vs(vert: vertex) -> @builtin(position) vec4f {
     let obj = objects[vert.id];
-    return scene.light_view * obj.world_matrix * vert.pos;
+    return matrix.light_view * obj.world_matrix * vert.pos;
 }

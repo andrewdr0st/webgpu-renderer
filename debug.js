@@ -11,19 +11,52 @@ function createFrustumVertices(camera, near, far, color) {
     return vertexList;
 }
 
-function setupDebugVertexBuffer(scene) {
-    let vList = new Float32Array(32 * 2);
+function setupDebugBuffers(scene) {
+    debugBindGroup = device.createBindGroup({
+        label: "debug bind group",
+        layout: objectsBindGroupLayout,
+        entries: [
+            { binding: 0, resource: { buffer: debugUniformBuffer } },
+            { binding: 1, resource: { buffer: objectInfoBuffer } },
+            { binding: 2, resource: { buffer: materialBuffer } }
+        ]
+    });
+    
+    debugVertexBuffer = device.createBuffer({
+        label: "debug vertex buffer",
+        size: 32 * 4 * scene.shadowMapCount,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    });
+
+    debugIndexBuffer = device.createBuffer({
+        label: "debug index buffer",
+        size: 36 * 4 * scene.shadowMapCount,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    });
+
+    let iList = new Uint32Array(36 * scene.shadowMapCount);
+    for (let i = 0; i < scene.shadowMapCount; i++) {
+        let j = 8 * i;
+        iList.set([
+            0 + j, 1 + j, 2 + j, 1 + j, 2 + j, 3 + j,
+            0 + j, 1 + j, 4 + j, 1 + j, 4 + j, 5 + j,
+            0 + j, 2 + j, 4 + j, 2 + j, 4 + j, 6 + j,
+            4 + j, 5 + j, 6 + j, 5 + j, 6 + j, 7 + j,
+            2 + j, 3 + j, 6 + j, 3 + j, 6 + j, 7 + j,
+            1 + j, 3 + j, 5 + j, 3 + j, 5 + j, 7 + j],
+            i * 36
+        );
+    }
+    device.queue.writeBuffer(debugIndexBuffer, 0, iList);
+}
+
+function fillDebugVertexBuffer(scene) {
+    let vList = new Float32Array(32 * scene.shadowMapCount);
     let c = [[64, 0, 0, 64], [0, 64, 0, 64], [0, 0, 64, 64]];
     for (let i = 0; i < scene.shadowMapCount; i++) {
         let v = createFrustumVertices(scene.camera, scene.shadowMapDivisions[i], scene.shadowMapDivisions[i + 1], c[i]);
         vList.set(v, 32 * i);
     }
-    /*
-    for (let i = 0; i < 8; i++) {
-        vList.set(scene.lightCorners[i], 32 + i * 4);
-        cList.set([0, 0, 64, 64], 140 + i * 16);
-    }
-    */
     device.queue.writeBuffer(debugVertexBuffer, 0, vList);
 }
 
@@ -43,12 +76,15 @@ function setupDebugCanvas() {
 }
 
 function runDebugPipeline(encoder, scene) {
-    //device.queue.writeBuffer(debugUniformBuffer, 0, scene.lightViewMatrices[0]);
-    device.queue.writeBuffer(debugUniformBuffer, 0, debugCamera.viewProjectionMatrix);
+    device.queue.writeBuffer(debugUniformBuffer, 0, scene.lightViewMatrices[1]);
+    //device.queue.writeBuffer(debugUniformBuffer, 0, debugCamera.viewProjectionMatrix);
     device.queue.writeBuffer(debugUniformBuffer, 64, scene.camera.position);
-    device.queue.writeBuffer(debugUniformBuffer, 80, scene.lightViewMatrices[0]);
-    device.queue.writeBuffer(debugUniformBuffer, 144, scene.lightDirection);
-    device.queue.writeBuffer(debugUniformBuffer, 156, new Float32Array([scene.ambient]));
+    device.queue.writeBuffer(debugUniformBuffer, 80, scene.lightDirection);
+    device.queue.writeBuffer(debugUniformBuffer, 92, new Float32Array([scene.ambient]));
+    device.queue.writeBuffer(debugUniformBuffer, 96, scene.lightViewMatrices[0]);
+    device.queue.writeBuffer(debugUniformBuffer, 160, scene.lightViewMatrices[1]);
+    device.queue.writeBuffer(debugUniformBuffer, 224, scene.lightViewMatrices[2]);
+    device.queue.writeBuffer(debugUniformBuffer, 240, scene.depthList);
 
     renderPassDescriptor.colorAttachments[0].view = debugContext.getCurrentTexture().createView();
     const debugRenderPass = encoder.beginRenderPass(renderPassDescriptor);
@@ -66,7 +102,7 @@ function runDebugPipeline(encoder, scene) {
     debugPass.setVertexBuffer(0, debugVertexBuffer);
     debugPass.setIndexBuffer(debugIndexBuffer, "uint32");
     debugPass.setBindGroup(0, debugBindGroup);
-    debugPass.drawIndexed(72);
+    debugPass.drawIndexed(36 * scene.shadowMapCount);
     debugPass.end();
 
     /*
