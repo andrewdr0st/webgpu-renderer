@@ -41,7 +41,7 @@ struct vsOutput {
 
 const SHADOW_BIAS = vec3f(0.0025, 0.004, 0.006);
 const SHADOW_MAP_SIZE = 2048.0;
-const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
+const SHADOW_SAMPLE_OFFSET = vec3f(1.0 / SHADOW_MAP_SIZE, 0.5 / SHADOW_MAP_SIZE, 0.25 / SHADOW_MAP_SIZE);
 
 @group(0) @binding(0) var<uniform> scene: sceneInfo;
 @group(0) @binding(1) var<storage, read> objects: array<objectInfo>;
@@ -88,9 +88,9 @@ const SHADOW_SAMPLE_OFFSET = 1.0 / SHADOW_MAP_SIZE;
 
 fn inShadow(cascade: i32, shadow_pos: vec3f) -> f32 {
     var visibility = 0.0;
-    for (var y = -2.0; y <= 2; y += 1) {
-        for (var x = -2.0; x <= 2; x += 1) {
-            let offset = vec2f(x, y) * SHADOW_SAMPLE_OFFSET;
+    for (var y = -2.0; y <= 2.01; y += 1) {
+        for (var x = -2.0; x <= 2.01; x += 1) {
+            let offset = vec2f(x, y) * SHADOW_SAMPLE_OFFSET[cascade];
             visibility += textureSampleCompare(shadow_map, shadow_sampler, shadow_pos.xy + offset, cascade, shadow_pos.z - SHADOW_BIAS[cascade]);
         }
     }

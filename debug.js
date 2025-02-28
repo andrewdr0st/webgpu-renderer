@@ -75,8 +75,71 @@ function setupDebugCanvas() {
     texContext = texCanvas.context;
 }
 
+async function setupDebugPipeline() {
+    let debugCode = await loadWGSLShader("debug.wgsl");
+    debugModule = device.createShaderModule({
+        label: "debug shader",
+        code: debugCode
+    });
+    const debugPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+            objectsBindGroupLayout
+        ]
+    });
+    debugPipeline = device.createRenderPipeline({
+        label: "debug pipeline",
+        layout: debugPipelineLayout,
+        vertex: {
+            entryPoint: "vs",
+            buffers: [{
+                arrayStride: 16,
+                attributes: [
+                    { shaderLocation: 0, offset: 0, format: "float32x3"},
+                    { shaderLocation: 1, offset: 12, format: "unorm8x4"}
+                ]
+            }],
+            module: debugModule
+        },
+        fragment: {
+            entryPoint: "fs",
+            module: debugModule,
+            targets: [{
+                format: presentationFormat,
+                blend: {
+                    color: {
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src-alpha'
+                    },
+                    alpha: {
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src-alpha'
+                    },
+                }
+            }]
+        },
+        depthStencil: {
+            depthWriteEnabled: true,
+            depthCompare: 'less',
+            format: 'depth24plus'
+        }
+    });
+    debugPassDescriptor = {
+        label: "debug pass",
+        colorAttachments: [{
+            view: debugTexture.createView(),
+            loadOp: "load",
+            storeOp: "store"
+        }],
+        depthStencilAttachment: {
+            view: depthTexture.createView(),
+            depthLoadOp: "load",
+            depthStoreOp: "store"
+        }
+    }
+}
+
 function runDebugPipeline(encoder, scene) {
-    device.queue.writeBuffer(debugUniformBuffer, 0, scene.lightViewMatrices[1]);
+    device.queue.writeBuffer(debugUniformBuffer, 0, scene.lightViewMatrices[2]);
     //device.queue.writeBuffer(debugUniformBuffer, 0, debugCamera.viewProjectionMatrix);
     device.queue.writeBuffer(debugUniformBuffer, 64, scene.camera.position);
     device.queue.writeBuffer(debugUniformBuffer, 80, scene.lightDirection);

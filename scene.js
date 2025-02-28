@@ -104,7 +104,6 @@ class TestScene extends Scene {
         for (let i = 0; i < this.shadowMapCount; i++) {
             this.depthList.set([this.camera.zNear + this.camera.zLen * this.shadowMapDivisions[i + 1]], i);
         }
-        console.log(this.depthList);
         this.camera.updateLookAt();
         this.lightPosition = new Float32Array([100, 100, -30]);
         this.lightDirection = vec3.normalize(vec3.negate(this.lightDirection));

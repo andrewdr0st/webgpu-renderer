@@ -57,7 +57,7 @@ let vertexCount = 0;
 let indexCount = 0;
 
 let enableShadows = true;
-let debug = true;
+let debug = false;
 
 
 const VERTEX_SIZE = 36;
@@ -111,7 +111,7 @@ async function setupRenderPipeline() {
 
     let shaderCode = await loadWGSLShader("main.wgsl");
     let shadowShader = await loadWGSLShader("shadow.wgsl");
-    let debugCode = await loadWGSLShader("debug.wgsl");
+    
     let shadowTexCode = await loadWGSLShader("depthRender.wgsl");
 
     renderModule = device.createShaderModule({
@@ -123,11 +123,6 @@ async function setupRenderPipeline() {
         label: "shaow shader",
         code: shadowShader
     });
-
-    debugModule = device.createShaderModule({
-        label: "debug shader",
-        code: debugCode
-    })
 
     texModule = device.createShaderModule({
         label: "tex shader",
@@ -143,12 +138,6 @@ async function setupRenderPipeline() {
     const shadowPipelineLayout = device.createPipelineLayout({
         bindGroupLayouts: [
             shadowBindGroupLayout
-        ]
-    });
-
-    const debugPipelineLayout = device.createPipelineLayout({
-        bindGroupLayouts: [
-            objectsBindGroupLayout
         ]
     });
 
@@ -172,43 +161,7 @@ async function setupRenderPipeline() {
         }
     })
 
-    debugPipeline = device.createRenderPipeline({
-        label: "debug pipeline",
-        layout: debugPipelineLayout,
-        vertex: {
-            entryPoint: "vs",
-            buffers: [{
-                arrayStride: 16,
-                attributes: [
-                    { shaderLocation: 0, offset: 0, format: "float32x3"},
-                    { shaderLocation: 1, offset: 12, format: "unorm8x4"}
-                ]
-            }],
-            module: debugModule
-        },
-        fragment: {
-            entryPoint: "fs",
-            module: debugModule,
-            targets: [{
-                format: presentationFormat,
-                blend: {
-                    color: {
-                        srcFactor: 'one',
-                        dstFactor: 'one-minus-src-alpha'
-                    },
-                    alpha: {
-                        srcFactor: 'one',
-                        dstFactor: 'one-minus-src-alpha'
-                    },
-                }
-            }]
-        },
-        depthStencil: {
-            depthWriteEnabled: true,
-            depthCompare: 'less',
-            format: 'depth24plus'
-        }
-    });
+    
 
     shadowPipeline = device.createRenderPipeline({
         label: "shadow pipeline",
@@ -225,6 +178,9 @@ async function setupRenderPipeline() {
                 ]
             }],
             module: shadowModule
+        },
+        primitive: {
+            cullMode: "back"
         },
         depthStencil: {
             depthWriteEnabled: true,
@@ -287,26 +243,16 @@ async function setupRenderPipeline() {
         }
     }
 
-    debugPassDescriptor = {
-        label: "debug pass",
-        colorAttachments: [{
-            view: debugTexture.createView(),
-            loadOp: "load",
-            storeOp: "store"
-        }],
-        depthStencilAttachment: {
-            view: depthTexture.createView(),
-            depthLoadOp: "load",
-            depthStoreOp: "store"
-        }
-    }
-
     texPassDescriptor = {
         label: "tex pass",
         colorAttachments: [{
             loadOp: "load",
             storeOp: "store"
         }]
+    }
+
+    if (debug) {
+        await setupDebugPipeline();
     }
 }
 
