@@ -1,4 +1,3 @@
-
 struct sceneInfo {
     view: mat4x4f,
     view_pos: vec3f,

@@ -1,3 +1,24 @@
+let debugCanvas;
+let debugContext;
+let debugTexture;
+let texCanvas;
+let texContext;
+let texTexture;
+
+let debugModule;
+let debugPipeline;
+let debugPassDescriptor;
+let texPipeline;
+let texModule;
+let texPassDescriptor;
+
+let debugVertexBuffer;
+let debugIndexBuffer;
+let debugUniformBuffer;
+let debugBindGroup;
+let depthTexBindGroup;
+let depthTexBindGroupLayout;
+
 let debugCamera;
 
 function createFrustumVertices(camera, near, far, color) {
@@ -32,6 +53,12 @@ function setupDebugBuffers(scene) {
         label: "debug index buffer",
         size: 36 * 4 * scene.shadowMapCount,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    });
+
+    debugUniformBuffer = device.createBuffer({
+        label: "debug uniform",
+        size: UNIFORM_BUFFER_SIZE,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
     let iList = new Uint32Array(36 * scene.shadowMapCount);
@@ -135,6 +162,37 @@ async function setupDebugPipeline() {
             depthLoadOp: "load",
             depthStoreOp: "store"
         }
+    }
+
+    let shadowTexCode = await loadWGSLShader("depthRender.wgsl");
+    texModule = device.createShaderModule({
+        label: "tex shader",
+        code: shadowTexCode
+    });
+    const depthPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [
+            depthTexBindGroupLayout
+        ]
+    });
+    texPipeline = device.createRenderPipeline({
+        label: "depth tex pipeline",
+        layout: depthPipelineLayout,
+        vertex: {
+            entryPoint: "vs",
+            module: texModule
+        },
+        fragment: {
+            entryPoint: "fs",
+            module: texModule,
+            targets: [{ format: presentationFormat }]
+        }
+    });
+    texPassDescriptor = {
+        label: "tex pass",
+        colorAttachments: [{
+            loadOp: "load",
+            storeOp: "store"
+        }]
     }
 }
 

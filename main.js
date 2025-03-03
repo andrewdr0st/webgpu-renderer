@@ -40,9 +40,9 @@ function main(currentTime) {
     const deltaTime = (currentTime - lastFrameTime) * 0.001;
     lastFrameTime = currentTime;
     //cubeTheta += cubeVelocity * deltaTime;
-    sunTheta += sunVelocity * deltaTime;
-    scene.lightPosition.set([Math.sin(sunTheta) * sunDist, Math.cos(sunTheta) * sunDist], 0);
-    scene.lightDirection = vec3.normalize(scene.lightPosition);
+    //sunTheta += sunVelocity * deltaTime;
+    //scene.lightPosition.set([Math.sin(sunTheta) * sunDist, Math.cos(sunTheta) * sunDist], 0);
+    //scene.lightDirection = vec3.normalize(scene.lightPosition);
     cameraForwardVelocity = inputMap[0] - inputMap[1];
     cameraRightVelocity = inputMap[3] - inputMap[2];
     camera.lookTo = [Math.sin(cameraTheta) * Math.cos(cameraPhi), Math.sin(cameraPhi), Math.cos(cameraTheta) * Math.cos(cameraPhi)];
