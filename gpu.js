@@ -148,6 +148,8 @@ async function setupRenderPipeline() {
         }
     }
 
+    await setupPerlinPipeline();
+
     if (enableShadows) {
         await setupShadowPipeline();
     }
@@ -345,6 +347,8 @@ function createBindGroupLayouts() {
     if (enableShadows) {
         createShadowBindGroupLayout();
     }
+
+    createPerlinBindGroupLayout();
 
     depthTexBindGroupLayout = device.createBindGroupLayout({
         entries: [
