@@ -1,8 +1,20 @@
-function createTerrainMesh() {
-    let vertices = [];
-    let indices = [];
-    for (let i = 0; i < 10; i += 2) {
-        vertices.push(i * 0.5, 0.0, 0.0, i * 0.5, 1.0, 0.0);
-        layer.push(i + 1, i + 2, i + 4, i + 1, i + 4, i + 3);
-    }
+function createTerrainMesh(count, initialWidth) {
+    let vertices = new Float32Array(624 * count);
+    let colors = new Uint8Array(vertices.buffer);
+    let indices = new Uint32Array(890 * count + 150 * (count - 1));
+
+    
+}
+
+/**
+ * 
+ * @param {Float32Array} vertices vertex array
+ * @param {Uint32Array} indices index array
+ * @param {Int} vIdx current index of vertex array
+ * @param {Int} iIdx current index of index array
+ * @param {Int} len square count
+ * @param {Float} w square width in units
+ */
+function createTerrainBand(vertices, indices, vIdx, iIdx, len, w) {
+
 }
