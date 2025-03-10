@@ -1,5 +1,4 @@
 
-const F_MAX: f32 = 4294967296.0;
 const TWO_PI: f32 = 6.28318530718;
 
 @group(0) @binding(0) var tex: texture_storage_2d<r32float, write>;
@@ -18,20 +17,25 @@ const TWO_PI: f32 = 6.28318530718;
     let d01 = dot(v01, vec2f(0.0, 1.0) - pos);
     let d10 = dot(v10, vec2f(1.0, 0.0) - pos);
     let d11 = dot(v11, vec2f(1.0, 1.0) - pos);
-    let xlerp1 = mix(d00, d10, pos.x);
-    let xlerp2 = mix(d10, d11, pos.x);
-    let lerp = mix(xlerp1, xlerp2, pos.y);
+    let u = smoothstep(pos.x);
+    let v = smoothstep(pos.y);
+    let xlerp1 = mix(d00, d10, u);
+    let xlerp2 = mix(d01, d11, u);
+    let lerp = mix(xlerp1, xlerp2, v);
     textureStore(tex, g_id.xy, vec4f(lerp * 0.5 + 0.5, 0.0, 0.0, 1.0));
 }
 
-
 fn wangHash(x: u32, y: u32) -> f32 {
-    var seed: u32 = (x * 73856093u) ^ (y * 19349663u);
-    seed = (seed ^ 61u) ^ (seed >> 16u);
-    seed *= 9u;
-    seed = seed ^ (seed >> 4u);
-    seed *= 0x27d4eb2du;
-    seed = seed ^ (seed >> 15u);
-    return f32(seed) / F_MAX;
+    var seed: u32 = x * 1664525u + y * 1013904223u;
+    seed ^= (seed >> 16u);
+    seed *= 2246822519u;
+    seed ^= (seed >> 13u);
+    seed *= 3266489917u;
+    seed ^= (seed >> 16u);
+    return f32(seed) / f32(0x10000000);
+}
+
+fn smoothstep(t: f32) -> f32 {
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 

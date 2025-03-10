@@ -33,7 +33,12 @@ async function init() {
     await setupRenderPipeline();
     await setupTextures();
     setupBuffers(scene);
-    requestAnimationFrame(main);
+
+    await setupPerlinPipeline();
+    createPerlinBindGroupLayout();
+    runPerlinPipeline();
+
+    //requestAnimationFrame(main);
 }
 
 function main(currentTime) {

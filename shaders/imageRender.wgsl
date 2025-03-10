@@ -1,18 +1,24 @@
+struct vsOutput {
+    @builtin(position) position: vec4f,
+    @location(0) uv: vec2f
+}
 
+@group(0) @binding(0) var tex: texture_2d<f32>;
+@group(0) @binding(1) var samp: sampler;
 
-@group(0) @binding(0) var tex: texture_2d;
-@group(1) @binding(1) var samp: sampler;
-
-@vertex fn vs(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
+@vertex fn vs(@builtin(vertex_index) vertex_index: u32) -> vsOutput {
     var positions = array<vec2f, 3>(
         vec2f(-1.0, -1.0),
         vec2f( 3.0, -1.0),
         vec2f(-1.0,  3.0)
     );
-    return return vec4f(positions[vertex_index], 1.0, 1.0);
+    var vsOut: vsOutput;
+    vsOut.position = vec4f(positions[vertex_index], 1.0, 1.0);
+    vsOut.uv = positions[vertex_index] * 0.5 + 0.5;
+    return vsOut;
 }
 
-@fragment fn fs(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
-    let uv = fragCoord.xy * 0.5 + 0.5;
-    return textureSample(myTexture, mySampler, uv);
+@fragment fn fs(fsIn: vsOutput) -> @location(0) vec4f {
+    let v = textureSample(tex, samp, fsIn.uv);
+    return vec4f(v.r, v.r, v.r, 1.0);
 }

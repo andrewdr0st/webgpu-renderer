@@ -247,7 +247,8 @@ async function setupTextures() {
 
     nearestSampler = device.createSampler({
         minFilter: "nearest",
-        magFilter: "nearest"
+        magFilter: "nearest",
+        type: "unfilterable-float"
     });
 
     linearSampler = device.createSampler({
@@ -355,7 +356,7 @@ function createBindGroupLayouts() {
             {
                 binding: 0,
                 visibility: GPUShaderStage.FRAGMENT,
-                texture: { sampleType : "depth" }
+                texture: { sampleType : "unfilterable-float" }
             }, {
                 binding: 1,
                 visibility: GPUShaderStage.FRAGMENT,
