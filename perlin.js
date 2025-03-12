@@ -6,7 +6,7 @@ let perlinTexture;
 let displayPipeline;
 let displayPassDescriptor;
 
-const PERLIN_SIZE = 256;
+const PERLIN_SIZE = 64;
 
 async function setupPerlinPipeline() {
     let perlinShader = await loadWGSLShader("perlin.wgsl");

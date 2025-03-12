@@ -2,9 +2,9 @@
 
 class Mesh {
     constructor(v, vCount, i, iCount) {
-        this.vertices = new Float32Array(v);
+        this.vertices = v;
         this.vertexCount = vCount;
-        this.indices = new Float32Array(i);
+        this.indices = i;
         this.indexCount = iCount;
     }
 }
@@ -21,7 +21,7 @@ class MeshLoader {
     }
 
     getMesh() {
-        return new Mesh(this.vertices, this.vertexCount, this.indices, this.indexCount);
+        return new Mesh(new Float32Array(this.vertices), this.vertexCount, new Uint32Array(this.indices), this.indexCount);
     }
 
     async parseObjFile(filename, invert=false) {
