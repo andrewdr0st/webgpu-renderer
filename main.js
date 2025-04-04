@@ -38,7 +38,7 @@ async function init() {
     createPerlinBindGroupLayout();
     runPerlinPipeline();
 
-    //requestAnimationFrame(main);
+    requestAnimationFrame(main);
 }
 
 function main(currentTime) {
@@ -56,6 +56,7 @@ function main(currentTime) {
     let moveVec = vec3.normalize(vec3.add(fVec, rVec));
     camera.position = vec3.add(camera.position, vec3.scale(moveVec, deltaTime * cameraSpeed));
     camera.updateLookAt();
+    scene.update(deltaTime);
     scene.updateLightViewMatrices();
     if (debug) {
         fillDebugVertexBuffer(scene);

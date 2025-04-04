@@ -93,11 +93,15 @@ class Scene {
     async init() {
 
     }
+
+    update() {
+
+    }
 }
 
 class TestScene extends Scene {
     async init() {
-        await this.addMeshes(["plane.obj", "testcube.obj"]);
+        await this.addMeshes(["plane.obj", "testcube.obj", "hexring.obj"]);
 
         this.camera.position = [0, 2.5, -5];
         this.camera.setClipPlanes(0.2, 100);
@@ -112,6 +116,7 @@ class TestScene extends Scene {
 
         this.addMaterial(new Material(0.8, 0.05, 2, 1, 0, 1));
         this.addMaterial(new Material(0.7, 0.7, 50, 0, 1, 0));
+        this.addMaterial(new Material(0.4, 0.9, 100, 0, 1, 0));
 
         let floor = new SceneObject(this.meshList[0].getMesh());
         floor.scale = [50, 1, 25];
@@ -130,5 +135,19 @@ class TestScene extends Scene {
         wall.scale = [15, 6, 0.5];
         wall.materialId = 1;
         this.addObject(wall);
+
+        let ring = new SceneObject(this.meshList[2].getMesh());
+        ring.position = [5, 5, 5];
+        ring.scale = [3, 3, 3];
+        ring.materialId = 1;
+        this.addObject(ring);
+
+        this.ringTheta = 0;
+        this.ringThetaV = 0.1;
+    }
+
+    update(deltaTime) {
+        this.ringTheta += this.ringThetaV * deltaTime;
+        this.objectList[3].rotation = [0, 0, this.ringTheta];
     }
 }
