@@ -117,6 +117,7 @@ class TestScene extends Scene {
         this.addMaterial(new Material(0.8, 0.05, 2, 1, 0, 1));
         this.addMaterial(new Material(0.7, 0.7, 50, 0, 1, 0));
         this.addMaterial(new Material(0.4, 0.9, 100, 0, 1, 0));
+        this.addMaterial(new Material(0.8, 0.5, 20, 0, 2, 0));
 
         let floor = new SceneObject(this.meshList[0].getMesh());
         floor.scale = [50, 1, 25];
@@ -139,15 +140,26 @@ class TestScene extends Scene {
         let ring = new SceneObject(this.meshList[2].getMesh());
         ring.position = [5, 5, 5];
         ring.scale = [3, 3, 3];
-        ring.materialId = 1;
+        ring.materialId = 2;
         this.addObject(ring);
 
         this.ringTheta = 0;
         this.ringThetaV = 0.1;
+
+        let board = new SceneObject(this.meshList[0].getMesh());
+        board.position = [20, 3, 0];
+        board.scale = [2, 1, 0.5];
+        board.rotation = [0, 0, degToRad(90)];
+        board.materialId = 3;
+        this.addObject(board);
     }
 
     update(deltaTime) {
         this.ringTheta += this.ringThetaV * deltaTime;
         this.objectList[3].rotation = [0, 0, this.ringTheta];
+
+        let b = vec3.normalize(vec3.subtract(this.camera.position, [20, 3, 0]));
+        let theta = Math.atan2(-b[2], b[0]) + Math.PI;
+        this.objectList[4].rotation[1] = theta;
     }
 }

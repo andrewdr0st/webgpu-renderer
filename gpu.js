@@ -237,9 +237,10 @@ function setupBuffers(scene) {
 }
 
 async function setupTextures() {
-    testBitmap = await loadImage("testf.png");
-    brickBitmap = await loadImage("brick16x16.png");
-    grassBitmap = await loadImage("grassbad64x64.png");
+    let testBitmap = await loadImage("testf.png");
+    let brickBitmap = await loadImage("brick16x16.png");
+    let grassBitmap = await loadImage("grassbad64x64.png");
+    let planksBitmap = await loadImage("planks16x16.png");
 
     if (enableShadows) {
         setupShadowMaps();
@@ -257,12 +258,13 @@ async function setupTextures() {
     });
 
     textureArray16 = device.createTexture({
-        size: [16, 16, 2],
+        size: [16, 16, 3],
         format: "rgba8unorm",
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });
     device.queue.copyExternalImageToTexture({ source: testBitmap }, { texture: textureArray16, origin: { z: 0 } }, [16, 16]);
     device.queue.copyExternalImageToTexture({ source: brickBitmap }, { texture: textureArray16, origin: { z: 1 } }, [16, 16]);
+    device.queue.copyExternalImageToTexture({ source: planksBitmap }, { texture: textureArray16, origin: { z: 2 } }, [16, 16]);
 
     textureArray64 = device.createTexture({
         size: [64, 64, 2],
