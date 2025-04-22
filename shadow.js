@@ -37,7 +37,7 @@ async function setupShadowPipeline() {
             module: shadowModule
         },
         primitive: {
-            cullMode: "back"
+            cullMode: "front"
         },
         depthStencil: {
             depthWriteEnabled: true,

@@ -39,7 +39,7 @@ struct vsOutput {
     @location(4) @interpolate(flat) material: u32,
 };
 
-const SHADOW_BIAS = vec3f(0.0025, 0.004, 0.006);
+const SHADOW_BIAS = vec3f(0.00005, 0.0001, 0.00025);
 const SHADOW_MAP_SIZE = 2048.0;
 const SHADOW_SAMPLE_OFFSET = vec3f(1.0 / SHADOW_MAP_SIZE, 0.5 / SHADOW_MAP_SIZE, 0.25 / SHADOW_MAP_SIZE);
 
