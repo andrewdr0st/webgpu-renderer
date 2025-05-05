@@ -101,7 +101,7 @@ class Scene {
 
 class TestScene extends Scene {
     async init() {
-        await this.addMeshes(["plane.obj", "testcube.obj", "hexring.obj"]);
+        await this.addMeshes(["plane.obj", "testcube.obj", "hexring.obj", "slope.obj", "octohole.obj"]);
 
         this.camera.position = [0, 2.5, -5];
         this.camera.setClipPlanes(0.2, 100);
@@ -152,6 +152,17 @@ class TestScene extends Scene {
         board.rotation = [0, 0, degToRad(90)];
         board.materialId = 3;
         this.addObject(board);
+
+        let slope = new SceneObject(this.meshList[3].getMesh());
+        slope.position = [0, 2, -20];
+        slope.materialId = 0;
+        this.addObject(slope);
+
+        let hole = new SceneObject(this.meshList[4].getMesh());
+        hole.position = [0, 0, -40];
+        hole.scale = [5, 1, 5];
+        hole.materialId = 1;
+        this.addObject(hole);
     }
 
     update(deltaTime) {

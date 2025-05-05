@@ -123,7 +123,7 @@ async function setupRenderPipeline() {
             targets: [{ format: presentationFormat }]
         },
         primitive: {
-            cullMode: "back"
+            cullMode: "front"
         },
         depthStencil: {
             depthWriteEnabled: true,

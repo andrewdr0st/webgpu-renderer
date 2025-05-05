@@ -17,7 +17,8 @@ struct particleInfo {
 @group(1) @binding(0) var<storage, read> instances: array<particleInfo>;
 
 @vertex fn vs(@builtin(position) pos: vec4f, @builtin(instance_index) i: u32) -> @builtin(position) vec4f {
-    return pos;
+    let p_info = instances[i];
+    return pos p_info.pos;
 }
 
 @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
