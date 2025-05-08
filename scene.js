@@ -101,7 +101,7 @@ class Scene {
 
 class TestScene extends Scene {
     async init() {
-        await this.addMeshes(["plane.obj", "testcube.obj", "hexring.obj", "slope.obj", "octohole.obj"]);
+        await this.addMeshes(["plane.obj", "testcube.obj", "hexring.obj", "slope2.obj", "diamond.obj"]);
 
         this.camera.position = [0, 2.5, -5];
         this.camera.setClipPlanes(0.2, 100);
