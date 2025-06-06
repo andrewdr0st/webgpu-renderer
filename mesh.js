@@ -1,4 +1,11 @@
-
+const FLAG1 = 0x80;
+const FLAG2 = 0x40;
+const FLAG3 = 0x20;
+const FLAG4 = 0x10;
+const FLAG5 = 0x08;
+const FLAG6 = 0x04;
+const FLAG7 = 0x02;
+const FLAG8 = 0x01;
 
 class Mesh {
     constructor(v, vCount, i, iCount) {
@@ -66,5 +73,23 @@ class MeshLoader {
                 }
             }
         }
+    }
+
+    async parseSnobFile(filename) {
+        const response = await fetch("meshes/snob/" + filename);
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+        const data = await response.arrayBuffer();
+        const byteArray = new Uint8Array(data);
+        const signed = (byteArray[5] & FLAG1) != 0;
+        const includeNormals = (byteArray[5] & FLAG2) != 0;
+        const includeTc = (byteArray[5] & FLAG3) != 0;
+        const includeTcBuffer = (byteArray[5] & FLAG4) != 0;
+        const includeTris = (byteArray[5] & FLAG5) != 0;
+        const includeQuads = (byteArray[5] & FLAG6) != 0;
+        const includeRescale = (byteArray[5] & FLAG7) != 0;
+        const setCount = (byteArray[8] << 8) | byteArray[9];
+        const setArray = signed ? new Int8Array(setCount) : new Uint8Array(setCount);
     }
 }
