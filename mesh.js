@@ -6,6 +6,8 @@ const FLAG5 = 0x08;
 const FLAG6 = 0x04;
 const FLAG7 = 0x02;
 const FLAG8 = 0x01;
+const SINTM = 0.00787401574;
+const UINTM = 0.00392156862;
 
 class Mesh {
     constructor(v, vCount, i, iCount) {
@@ -90,6 +92,30 @@ class MeshLoader {
         const includeQuads = (byteArray[5] & FLAG6) != 0;
         const includeRescale = (byteArray[5] & FLAG7) != 0;
         const setCount = (byteArray[8] << 8) | byteArray[9];
-        const setArray = signed ? new Int8Array(setCount) : new Uint8Array(setCount);
+        const vertexCount = (byteArray[10] << 8) | byteArray[11];
+        const triCount = (byteArray[12] << 8) | byteArray[13];
+        const offset = 14;
+        const vertexSize = 1 + includeNormals + includeTc;
+        const setArray = signed ? new Int8Array(data, offset, setCount * 3) : new Uint8Array(setCount, offset, setCount * 3);
+        const vertexArray = new Uint16Array(data, offset + setCount * 3, vertexCount * vertexSize);
+        const triArray = new Uint16Array(data, offset + setCount * 3 + vertexCount * vertexSize, triCount * 3);
+        const vertexBuffer = new Float32Array(vertexCount * 8);
+        const indexBuffer = new Uint32Array(triCount * 3);
+        for (let i = 0; i < vertexCount; i++) {
+            let offset = i * 8;
+            let vOffset = i * vertexSize;
+            let pIdx = vertexArray[vOffset] * 3;
+            let nIdx = vertexArray[vOffset + 1] * 3;
+            let tIdx = vertexArray[vOffset + 2] * 3;
+            vertexBuffer.set(setArray[pIdx] * SINTM, offset);
+            vertexBuffer.set(setArray[pIdx + 1] * SINTM, offset + 1);
+            vertexBuffer.set(setArray[pIdx + 2] * SINTM, offset + 2);
+            vertexBuffer.set(setArray[nIdx] * SINTM, offset + 3);
+            vertexBuffer.set(setArray[nIdx + 1] * SINTM, offset + 4);
+            vertexBuffer.set(setArray[nIdx + 2] * SINTM, offset + 5);
+            vertexBuffer.set(setArray[tIdx] * SINTM, offset + 6);
+            vertexBuffer.set(setArray[tIdx + 1] * SINTM, offset + 7);
+        }
+        indexBuffer.set(triArray);
     }
 }
