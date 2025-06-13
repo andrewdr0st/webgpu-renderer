@@ -91,14 +91,26 @@ class MeshLoader {
         const includeTris = (byteArray[5] & FLAG5) != 0;
         const includeQuads = (byteArray[5] & FLAG6) != 0;
         const includeRescale = (byteArray[5] & FLAG7) != 0;
-        const setCount = (byteArray[8] << 8) | byteArray[9];
-        const vertexCount = (byteArray[10] << 8) | byteArray[11];
-        const triCount = (byteArray[12] << 8) | byteArray[13];
-        const offset = 14;
-        const vertexSize = 1 + includeNormals + includeTc;
+        const setCompress = (byteArray[6] & FLAG1) != 0;
+        const vertexCompress = (byteArray[6] & FLAG2) != 0;
+        const triCompress = (byteArray[6] & FLAG3) != 0;
+        const quadCompress = (byteArray[6] & FLAG4) != 0;
+        const normalCompress = (byteArray[6] & FLAG5) != 0;
+        const tcCompress = (byteArray[6] & FLAG6) != 0;
+        let offset = 8;
+        //set count and vertex count are 2 bytes, or 1 if compress flag is enabled
+        const setCount = setCompress ? (byteArray[offset++] << 8) | byteArray[offset++] : byteArray[offset++];
+        const vertexCount = vertexCompress ? (byteArray[offset++] << 8) | byteArray[offset++] : byteArray[offset++];
+        //only read tri count or quad count if they are included
+        const triCount = includeTris * (triCompress ? (byteArray[offset++] << 8) | byteArray[offset++] : byteArray[offset++]);
+        const quadCount = includeQuads * (quadCompress ? (byteArray[offset++] << 8) | byteArray[offset++] : byteArray[offset++]);
+        const vertexSize = 1 + vertexCompress + includeNormals * (1 + normalCompress) + includeTc * (1 + tcCompress);
         const setArray = signed ? new Int8Array(data, offset, setCount * 3) : new Uint8Array(setCount, offset, setCount * 3);
-        const vertexArray = new Uint16Array(data, offset + setCount * 3, vertexCount * vertexSize);
-        const triArray = new Uint16Array(data, offset + setCount * 3 + vertexCount * vertexSize, triCount * 3);
+        offset += setCount * 3;
+        const vertexArray = new Uint8Array(data, offset, vertexCount * vertexSize);
+        offset += vertexCount * vertexSize;
+        const triArray = new Uint16Array(data, offset, triCount * 3);
+        offset += triCount * 3 * includeTris;
         const vertexBuffer = new Float32Array(vertexCount * 8);
         const indexBuffer = new Uint32Array(triCount * 3);
         for (let i = 0; i < vertexCount; i++) {
